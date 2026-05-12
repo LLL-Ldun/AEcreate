@@ -13,9 +13,10 @@
       .replace(/\u2029/g, '\\u2029');
   }
 
-  function buildScript(functionName, payloadText) {
+  function buildScript(functionName, payloadText, bridgePath) {
     var escapedFunctionName = escapeScriptString(functionName);
     var escapedPayload = escapeScriptString(payloadText);
+    var escapedBridgePath = escapeScriptString(bridgePath);
     return [
       '(function () {',
       '  function jsonError(message) {',
@@ -26,12 +27,17 @@
       '      .replace(/\\n/g, \'\\\\n\') + \'"}\';',
       '  }',
       '  try {',
+      '    var bridgeFile = new File(\'' + escapedBridgePath + '\');',
+      '    if (bridgeFile.exists) {',
+      '      $.evalFile(bridgeFile);',
+      '    }',
       '    var functionName = \'' + escapedFunctionName + '\';',
       '    if (typeof AECreateBridge === \'undefined\') {',
       '      return jsonError(\'AECreateBridge is not loaded for \' + functionName);',
       '    }',
       '    if (typeof AECreateBridge[functionName] !== \'function\') {',
-      '      return jsonError(\'AECreateBridge.\' + functionName + \' is not a function\');',
+      '      var warnings = AECreateBridge.loadWarnings && AECreateBridge.loadWarnings.length ? \' Load warnings: \' + AECreateBridge.loadWarnings.join(\'; \') : \'\';',
+      '      return jsonError(\'AECreateBridge.\' + functionName + \' is not a function.\' + warnings);',
       '    }',
       '    return AECreateBridge[functionName](\'' + escapedPayload + '\');',
       '  } catch (error) {',
@@ -43,7 +49,8 @@
 
   BridgeClient.prototype.call = function call(functionName, payload) {
     var serialized = JSON.stringify(payload || {});
-    var script = buildScript(functionName, serialized);
+    var bridgePath = new CSInterface().getSystemPath(SystemPath.EXTENSION) + '/jsx/bridge.jsx';
+    var script = buildScript(functionName, serialized, bridgePath);
     return new Promise(function (resolve) {
       this.cs.evalScript(script, function (raw) {
         try {

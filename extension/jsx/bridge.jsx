@@ -2,7 +2,7 @@
 
 var AECreateBridge = AECreateBridge || {};
 
-AECreateBridge.loadWarnings = AECreateBridge.loadWarnings || [];
+AECreateBridge.loadWarnings = [];
 
 AECreateBridge.fail = function (message) {
   throw new Error(message);
