@@ -141,7 +141,7 @@ AECreateContext.layerRecord = function (layer) {
   };
 };
 
-AECreateContext.export = function () {
+AECreateContext.exportContextData = function () {
   var comp = AECreateContext.activeComp();
   if (!comp) return { ok: false, error: 'No active composition.' };
   var selected = [];
@@ -218,7 +218,7 @@ AECreateContext.collectPresets = function (folder, records, state, depth) {
 
 AECreateBridge.exportContext = function () {
   try {
-    var result = AECreateContext.export();
+    var result = AECreateContext.exportContextData();
     if (!result.ok) return AECreateBridge.respond(result);
     var folder = AECreateBridge.bridgeFolder();
     AECreateBridge.writeText(new File(folder.fsName + '/current-context.json'), AECreateJSON.stringify(result.context));
