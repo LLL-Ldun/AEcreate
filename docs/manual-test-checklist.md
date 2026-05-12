@@ -1,0 +1,20 @@
+# Manual AE Test Checklist
+
+- [ ] Run `powershell -ExecutionPolicy Bypass -File scripts/install-dev.ps1`.
+- [ ] Restart After Effects 2025.
+- [ ] Open `Window > Extensions > AEcreate Codex Bridge`.
+- [ ] Choose a bridge folder outside video/material folders.
+- [ ] Open a test composition.
+- [ ] Select one layer.
+- [ ] Add a `kill_icon` marker from the panel.
+- [ ] Click `Refresh Context`.
+- [ ] Confirm `current-context.json` exists in the bridge folder.
+- [ ] Click `Scan Presets`.
+- [ ] Confirm `preset-cache.json` exists and includes `.ffx` files.
+- [ ] Add a test `pending-action.json` that applies a harmless preset or changes an existing effect property.
+- [ ] Confirm the pending plan appears with module checkboxes.
+- [ ] Apply one checked module.
+- [ ] Confirm the effect appears or updates on the selected layer.
+- [ ] Press Ctrl+Z once in AE and confirm the full applied module reverts.
+- [ ] Save the pending plan as a favorite.
+- [ ] Confirm logs are written in the bridge folder.
