@@ -16,6 +16,9 @@ ae-codex-bridge/
 # Local brainstorm/mockup artifacts
 .superpowers/
 
+# Local development worktrees
+.worktrees/
+
 # OS/editor noise
 .DS_Store
 Thumbs.db
