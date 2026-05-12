@@ -12,6 +12,7 @@
 - [ ] Click `Scan Presets`.
 - [ ] Confirm `preset-cache.json` exists and includes `.ffx` files.
 - [ ] Add a test `pending-action.json` that applies a harmless preset or changes an existing effect property.
+- [ ] For a safe first apply test, copy `examples/pending-actions/opacity-pulse.json` to `<bridge-folder>/pending-action.json` and set `target.layerIndex` to the selected layer index shown in `current-context.json`.
 - [ ] Confirm the pending plan appears with module checkboxes.
 - [ ] Apply one checked module.
 - [ ] Confirm the effect appears or updates on the selected layer.
