@@ -1,0 +1,33 @@
+# Dependencies and local tooling
+node_modules/
+.env
+.env.*
+
+# Build outputs
+dist/
+build/
+out/
+coverage/
+
+# AE/Codex local bridge data
+ae-codex-bridge/
+*.log
+
+# Local brainstorm/mockup artifacts
+.superpowers/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Large local production assets should stay outside this repo
+*.aep
+*.aepx
+*.mp4
+*.mov
+*.mkv
+*.avi
+*.wav
+*.mp3
