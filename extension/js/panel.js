@@ -1,6 +1,10 @@
 (function () {
   var bridge = new window.AECreateBridgeClient();
-  var state = { pending: null };
+  var i18n = window.AECreatePanelI18n;
+  var state = {
+    pending: null,
+    language: i18n.loadLanguage(window.localStorage)
+  };
 
   function requireElement(id) {
     var element = document.getElementById(id);
@@ -11,7 +15,26 @@
   }
 
   function setText(id, text) {
-    requireElement(id).textContent = text;
+    var element = requireElement(id);
+    element.removeAttribute('data-i18n');
+    element.removeAttribute('data-empty-i18n');
+    element.textContent = text;
+  }
+
+  function text(key) {
+    return i18n.t(state.language, key);
+  }
+
+  function setEmptyText(id, key) {
+    var element = requireElement(id);
+    element.setAttribute('data-empty-i18n', key);
+    element.textContent = text(key);
+  }
+
+  function applyLanguage() {
+    i18n.apply(document, state.language);
+    requireElement('languageSelect').value = state.language;
+    if (!state.pending) setEmptyText('pendingSummary', 'noPendingAction');
   }
 
   function renderPending(plan) {
@@ -19,7 +42,7 @@
     var list = requireElement('moduleList');
     list.innerHTML = '';
     if (!plan || !plan.modules || !plan.modules.length) {
-      setText('pendingSummary', 'No pending action.');
+      setEmptyText('pendingSummary', 'noPendingAction');
       return;
     }
     setText('pendingSummary', plan.title + '\n' + plan.summary);
@@ -50,6 +73,11 @@
   }
 
   requireElement('refreshContext').addEventListener('click', refreshContext);
+  requireElement('languageSelect').addEventListener('change', function () {
+    state.language = i18n.normalizeLanguage(this.value);
+    i18n.saveLanguage(window.localStorage, state.language);
+    applyLanguage();
+  });
   requireElement('chooseBridge').addEventListener('click', function () {
     bridge.call('chooseBridgeFolder', {}).then(function (result) {
       setText('contextStatus', result.ok ? result.message : result.error);
@@ -67,7 +95,7 @@
     });
   });
   requireElement('customMarker').addEventListener('click', function () {
-    var name = prompt('Marker name', 'custom_effect');
+    var name = prompt(text('markerPrompt'), 'custom_effect');
     if (name) bridge.call('addMarker', { name: name, target: 'layer' }).then(refreshContext);
   });
   requireElement('applyChecked').addEventListener('click', function () {
@@ -82,6 +110,7 @@
   requireElement('saveFavorite').addEventListener('click', function () { bridge.call('saveFavorite', {}).then(loadPending); });
   requireElement('openLogs').addEventListener('click', function () { bridge.call('openLogs', {}); });
 
+  applyLanguage();
   refreshContext();
   loadPending();
 }());

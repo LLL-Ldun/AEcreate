@@ -7,50 +7,62 @@
 </head>
 <body>
   <main class="panel">
+    <header class="panel-header">
+      <div class="app-title" data-i18n="appTitle">AEcreate Codex Bridge</div>
+      <label class="language-control">
+        <span data-i18n="languageLabel">界面语言</span>
+        <select id="languageSelect">
+          <option value="zh">中文</option>
+          <option value="en">English</option>
+        </select>
+      </label>
+    </header>
+
     <section class="section">
-      <div class="section-title">Context</div>
-      <div id="contextStatus" class="status">No context exported.</div>
+      <div class="section-title" data-i18n="contextTitle">上下文</div>
+      <div id="contextStatus" class="status" data-i18n="noContextExported">尚未导出上下文。</div>
       <div class="button-row">
-        <button id="refreshContext">Refresh Context</button>
-        <button id="chooseBridge">Choose Bridge</button>
+        <button id="refreshContext" data-i18n="refreshContext">刷新上下文</button>
+        <button id="chooseBridge" data-i18n="chooseBridge">选择桥接目录</button>
       </div>
-      <button id="openBridge" class="full">Open Bridge Folder</button>
+      <button id="openBridge" class="full" data-i18n="openBridge">打开桥接目录</button>
     </section>
 
     <section class="section">
-      <div class="section-title">Markers</div>
+      <div class="section-title" data-i18n="markersTitle">标记</div>
       <div class="button-grid">
-        <button data-marker="kill_icon">Kill</button>
-        <button data-marker="impact">Impact</button>
-        <button data-marker="rewind">Rewind</button>
-        <button id="customMarker">Custom</button>
+        <button data-marker="kill_icon" data-i18n="markerKill">击杀</button>
+        <button data-marker="impact" data-i18n="markerImpact">冲击</button>
+        <button data-marker="rewind" data-i18n="markerRewind">回溯</button>
+        <button id="customMarker" data-i18n="markerCustom">自定义</button>
       </div>
-      <pre id="markerList" class="box">No markers loaded.</pre>
+      <pre id="markerList" class="box" data-i18n="noMarkersLoaded">暂无标记。</pre>
     </section>
 
     <section class="section">
-      <div class="section-title">Library</div>
-      <button id="scanPresets" class="full">Scan Presets</button>
-      <pre id="presetStatus" class="box">Preset cache not scanned.</pre>
+      <div class="section-title" data-i18n="libraryTitle">预设库</div>
+      <button id="scanPresets" class="full" data-i18n="scanPresets">扫描预设</button>
+      <pre id="presetStatus" class="box" data-i18n="presetNotScanned">尚未扫描预设缓存。</pre>
     </section>
 
     <section class="section">
-      <div class="section-title">Pending Plan</div>
-      <div id="pendingSummary" class="status">No pending action.</div>
+      <div class="section-title" data-i18n="pendingTitle">待应用方案</div>
+      <div id="pendingSummary" class="status" data-i18n="noPendingAction">暂无待应用动作。</div>
       <div id="moduleList" class="module-list"></div>
       <div class="button-row">
-        <button id="applyChecked">Apply Checked</button>
-        <button id="discardPending">Discard</button>
+        <button id="applyChecked" data-i18n="applyChecked">应用勾选</button>
+        <button id="discardPending" data-i18n="discardPending">丢弃</button>
       </div>
       <div class="button-row">
-        <button id="saveFavorite">Save Favorite</button>
-        <button id="openLogs">Open Logs</button>
+        <button id="saveFavorite" data-i18n="saveFavorite">收藏方案</button>
+        <button id="openLogs" data-i18n="openLogs">打开日志</button>
       </div>
     </section>
   </main>
 
   <script src="./js/lib/CSInterface.js"></script>
   <script src="./js/bridge-client.js"></script>
+  <script src="./js/panel-i18n.js"></script>
   <script src="./js/panel.js"></script>
 </body>
 </html>

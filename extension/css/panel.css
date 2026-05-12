@@ -10,6 +10,34 @@ body {
   padding: 12px;
 }
 
+.panel-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.app-title {
+  font-weight: 700;
+}
+
+.language-control {
+  display: inline-grid;
+  grid-template-columns: auto auto;
+  gap: 6px;
+  align-items: center;
+  color: #c8c8c8;
+}
+
+.language-control select {
+  background: #171717;
+  color: #f0f0f0;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  padding: 5px 6px;
+}
+
 .section {
   border: 1px solid #3a3a3a;
   border-radius: 6px;
