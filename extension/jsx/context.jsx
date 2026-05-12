@@ -39,15 +39,29 @@ AECreateContext.safeValue = function (value, depth) {
 AECreateContext.markerList = function (markerProperty) {
   var output = [];
   if (!markerProperty) return output;
-  for (var i = 1; i <= markerProperty.numKeys; i++) {
-    var value = markerProperty.keyValue(i);
-    output.push({
-      index: i,
-      time: markerProperty.keyTime(i),
-      comment: value.comment,
-      chapter: value.chapter,
-      cuePointName: value.cuePointName
-    });
+  var keyCount = 0;
+  try {
+    keyCount = markerProperty.numKeys;
+  } catch (error) {
+    output.push({ error: String(error) });
+    return output;
+  }
+  for (var i = 1; i <= keyCount; i++) {
+    try {
+      var value = markerProperty.keyValue(i);
+      var record = { index: i };
+      try {
+        record.time = markerProperty.keyTime(i);
+        record.comment = value.comment;
+        record.chapter = value.chapter;
+        record.cuePointName = value.cuePointName;
+      } catch (fieldError) {
+        record.error = String(fieldError);
+      }
+      output.push(record);
+    } catch (keyError) {
+      output.push({ index: i, error: String(keyError) });
+    }
   }
   return output;
 };
@@ -67,26 +81,48 @@ AECreateContext.propertyValue = function (property) {
 AECreateContext.propertyTree = function (group, depth) {
   var output = [];
   if (!group || depth > 4) return output;
-  for (var i = 1; i <= group.numProperties; i++) {
-    var prop = group.property(i);
-    var record = {
-      index: i,
-      name: prop.name,
-      matchName: prop.matchName,
-      propertyType: prop.propertyType
-    };
-    if (prop.propertyType === PropertyType.PROPERTY) {
-      var state = AECreateContext.propertyValue(prop);
-      record.value = state.value;
-      record.keyCount = state.keyCount;
-      if (state.error) record.error = state.error;
+  var propertyCount = 0;
+  try {
+    propertyCount = group.numProperties;
+  } catch (error) {
+    output.push({ error: String(error) });
+    return output;
+  }
+  for (var i = 1; i <= propertyCount; i++) {
+    try {
+      var prop = group.property(i);
+      var record = { index: i };
       try {
-        if (prop.expressionEnabled) record.expression = prop.expression;
-      } catch (expressionError) {}
-    } else {
-      record.children = AECreateContext.propertyTree(prop, depth + 1);
+        record.name = prop.name;
+        record.matchName = prop.matchName;
+        record.propertyType = prop.propertyType;
+      } catch (fieldError) {
+        record.error = String(fieldError);
+        output.push(record);
+        continue;
+      }
+      if (record.propertyType === PropertyType.PROPERTY) {
+        var state = AECreateContext.propertyValue(prop);
+        record.value = state.value;
+        record.keyCount = state.keyCount;
+        if (state.error) record.error = state.error;
+        try {
+          if (prop.expressionEnabled) record.expression = prop.expression;
+        } catch (expressionError) {
+          record.expressionError = String(expressionError);
+        }
+      } else {
+        try {
+          record.children = AECreateContext.propertyTree(prop, depth + 1);
+        } catch (childError) {
+          record.children = [];
+          record.error = String(childError);
+        }
+      }
+      output.push(record);
+    } catch (propertyError) {
+      output.push({ index: i, error: String(propertyError) });
     }
-    output.push(record);
   }
   return output;
 };
@@ -131,22 +167,49 @@ AECreateContext.export = function () {
   return { ok: true, context: context };
 };
 
-AECreateContext.collectPresets = function (folder, records, seen) {
-  if (!folder || !folder.exists) return;
+AECreateContext.collectPresets = function (folder, records, state, depth) {
+  if (!folder) return;
+  try {
+    if (!folder.exists) return;
+  } catch (existsError) {
+    state.errors.push({ path: String(folder), error: String(existsError) });
+    return;
+  }
+  if (state.truncated) return;
+  if (depth > state.maxDepth) {
+    state.truncated = true;
+    state.errors.push({ path: folder.fsName, error: 'Preset scan max depth exceeded.' });
+    return;
+  }
   var key = String(folder.fsName).toLowerCase();
-  if (seen[key]) return;
-  seen[key] = true;
+  if (state.seen[key]) return;
+  state.seen[key] = true;
 
-  var items = folder.getFiles();
+  var items = [];
+  try {
+    items = folder.getFiles();
+  } catch (error) {
+    state.errors.push({ path: folder.fsName, error: String(error) });
+    return;
+  }
   for (var i = 0; i < items.length; i++) {
-    if (items[i] instanceof Folder) {
-      AECreateContext.collectPresets(items[i], records, seen);
-    } else if (/\.ffx$/i.test(items[i].name)) {
-      records.push({
-        name: items[i].displayName,
-        path: items[i].fsName,
-        modified: items[i].modified.toString()
-      });
+    if (state.truncated) return;
+    try {
+      if (items[i] instanceof Folder) {
+        AECreateContext.collectPresets(items[i], records, state, depth + 1);
+      } else if (/\.ffx$/i.test(items[i].name)) {
+        if (records.length >= state.maxRecords) {
+          state.truncated = true;
+          return;
+        }
+        records.push({
+          name: items[i].displayName,
+          path: items[i].fsName,
+          modified: items[i].modified.toString()
+        });
+      }
+    } catch (itemError) {
+      state.errors.push({ path: String(items[i]), error: String(itemError) });
     }
   }
 };
@@ -202,17 +265,28 @@ AECreateBridge.scanPresets = function () {
     var appPresets = new Folder(app.path.fsName + '/Presets');
     if (appPresets.exists) paths.push(appPresets.fsName);
     var records = [];
-    var seenFolders = {};
+    var state = {
+      seen: {},
+      errors: [],
+      truncated: false,
+      maxDepth: 8,
+      maxRecords: 5000
+    };
     for (var i = 0; i < paths.length; i++) {
-      if (paths[i]) AECreateContext.collectPresets(new Folder(paths[i]), records, seenFolders);
+      if (paths[i]) AECreateContext.collectPresets(new Folder(paths[i]), records, state, 0);
+      if (state.truncated) break;
     }
     var folder = AECreateBridge.bridgeFolder();
     AECreateBridge.writeText(new File(folder.fsName + '/preset-cache.json'), AECreateJSON.stringify({
       schemaVersion: 1,
       scannedAt: new Date().toString(),
+      errors: state.errors,
+      truncated: state.truncated,
       presets: records
     }));
-    return AECreateBridge.respond({ ok: true, message: 'Scanned ' + records.length + ' presets.' });
+    var message = 'Scanned ' + records.length + ' presets.';
+    if (state.truncated) message += ' Scan truncated.';
+    return AECreateBridge.respond({ ok: true, message: message });
   } catch (error) {
     return AECreateBridge.respond({ ok: false, error: String(error) });
   }
