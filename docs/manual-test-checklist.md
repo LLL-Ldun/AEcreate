@@ -15,6 +15,11 @@
 - [ ] Click `Scan Presets`.
 - [ ] Confirm the scan result lists the expected preset paths, including `Documents/Adobe/After Effects`.
 - [ ] Confirm `preset-cache.json` exists and includes `.ffx` files with source path and relative category.
+- [ ] In `Plugin Params`, enter an installed effect name or match name, such as `tc Particular` or `CC Particle World`.
+- [ ] Click `Scan Plugin`.
+- [ ] Confirm `<bridge-folder>/effect-catalog.json` and an `effect-params/*.json` file are created.
+- [ ] Confirm the parameter JSON includes parameter display names, match names, value types, paths, current values, and keyframe/expression capability flags where AE exposes them.
+- [ ] Click `Scan All Plugins` only in a disposable test project, confirm the warning prompt appears, and confirm `<bridge-folder>/effect-scan-report.json` records scanned and failed plugins.
 - [ ] Add a test `pending-action.json` that applies a harmless preset or changes an existing effect property.
 - [ ] For a safe first apply test, copy `examples/pending-actions/opacity-pulse.json` to `<bridge-folder>/pending-action.json`, then set `target.layerIndex` and `contextFingerprint` to the values shown in `current-context.json`.
 - [ ] Confirm the pending plan appears with module checkboxes.

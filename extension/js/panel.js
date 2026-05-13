@@ -180,6 +180,20 @@
     setText('presetPathList', text('customPresetPaths') + ':\n' + state.presetPaths.join('\n'));
   }
 
+  function renderEffectScanResult(result) {
+    if (!result.ok) {
+      setText('effectScanStatus', result.error);
+      return;
+    }
+    var lines = [result.message];
+    if (result.parameterCount !== undefined) lines.push('Parameters: ' + result.parameterCount);
+    if (result.truncated) lines.push('Truncated: true');
+    if (result.outputPath) lines.push('Output: ' + result.outputPath);
+    if (result.catalogPath) lines.push('Catalog: ' + result.catalogPath);
+    if (result.reportPath) lines.push('Report: ' + result.reportPath);
+    setText('effectScanStatus', lines.join('\n'));
+  }
+
   function loadSettings() {
     bridge.call('getSettings', {}).then(function (result) {
       if (result.ok && result.settings) renderPresetPaths(result.settings.presetPaths || []);
@@ -219,6 +233,13 @@
       setText('presetStatus', result.ok ? result.message : result.error);
       if (result.ok && result.settings) renderPresetPaths(result.settings.presetPaths || []);
     });
+  });
+  requireElement('scanEffectParams').addEventListener('click', function () {
+    bridge.call('scanEffectParams', { query: requireElement('effectScanQuery').value }).then(renderEffectScanResult);
+  });
+  requireElement('scanAllEffectParams').addEventListener('click', function () {
+    if (!confirm(text('scanAllEffectsConfirm'))) return;
+    bridge.call('scanAllEffectParams', { maxDepth: 8, maxRecords: 12000 }).then(renderEffectScanResult);
   });
   document.querySelectorAll('[data-marker]').forEach(function (button) {
     button.addEventListener('click', function () {

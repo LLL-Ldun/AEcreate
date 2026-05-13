@@ -138,6 +138,54 @@ test('marker buttons use the selected marker target', async () => {
   assert.equal(JSON.stringify(markerCall.payload), JSON.stringify({ name: 'kill_icon', target: 'comp' }));
 });
 
+test('plugin scan buttons send the requested effect query', async () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', 'extension', 'js', 'panel.js'), 'utf8');
+  const elements = createPanelElements();
+  elements.effectScanQuery.value = 'tc Particular';
+  const calls = [];
+
+  function BridgeClient() {}
+  BridgeClient.prototype.call = function call(name, payload) {
+    calls.push({ name, payload });
+    if (name === 'readPendingAction') return Promise.resolve({ ok: false, error: 'No pending.' });
+    if (name === 'listPendingArchive') return Promise.resolve({ ok: true, archive: { plans: [] } });
+    if (name === 'getSettings') return Promise.resolve({ ok: true, settings: { presetPaths: [] } });
+    if (name === 'scanEffectParams') {
+      return Promise.resolve({ ok: true, message: 'Scanned Trapcode Particular.', outputPath: 'C:/bridge/effect-params/tc-Particular.json' });
+    }
+    return Promise.resolve({ ok: true });
+  };
+
+  const context = {
+    window: {
+      AECreateBridgeClient: BridgeClient,
+      AECreatePanelI18n: createI18n(),
+      localStorage: createStorage()
+    },
+    document: createDocument(elements),
+    Promise,
+    Number,
+    Array,
+    String,
+    prompt() {
+      return null;
+    },
+    confirm() {
+      return true;
+    }
+  };
+
+  vm.runInNewContext(source, context, { filename: 'panel.js' });
+  await Promise.resolve();
+  elements.scanEffectParams.listeners.click();
+  await Promise.resolve();
+
+  const scanCall = calls.find((call) => call.name === 'scanEffectParams');
+  assert.equal(JSON.stringify(scanCall.payload), JSON.stringify({ query: 'tc Particular' }));
+  assert.match(elements.effectScanStatus.textContent, /Scanned Trapcode Particular/);
+  assert.match(elements.effectScanStatus.textContent, /tc-Particular\.json/);
+});
+
 function createPanelElements() {
   const ids = [
     'languageSelect',
@@ -149,6 +197,8 @@ function createPanelElements() {
     'markerTarget',
     'presetPathList',
     'presetStatus',
+    'effectScanQuery',
+    'effectScanStatus',
     'refreshContext',
     'refreshPending',
     'chooseBridge',
@@ -156,6 +206,8 @@ function createPanelElements() {
     'scanPresets',
     'addPresetPath',
     'clearPresetPaths',
+    'scanEffectParams',
+    'scanAllEffectParams',
     'customMarker',
     'applyChecked',
     'discardPending',

@@ -36,6 +36,8 @@ test('panel i18n defaults to Chinese and falls back for unknown language codes',
   assert.equal(i18n.t('en', 'markerTargetLabel'), 'Marker Target');
   assert.equal(i18n.t('zh', 'pendingTargetLabel'), '目标');
   assert.equal(i18n.t('en', 'pendingWarningLabel'), 'Warning');
+  assert.equal(i18n.t('zh', 'effectParamsTitle'), '插件参数库');
+  assert.equal(i18n.t('en', 'scanEffectParams'), 'Scan Plugin');
 });
 
 test('panel i18n applies translated static text to DOM nodes', () => {

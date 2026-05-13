@@ -230,6 +230,251 @@ AECreateContext.availableEffectsList = function () {
   return effects;
 };
 
+AECreateContext.effectScanFileName = function (matchName) {
+  var source = String(matchName || 'effect');
+  var safe = source.replace(/[^A-Za-z0-9._-]+/g, '-').replace(/^-+|-+$/g, '');
+  if (!safe) safe = 'effect';
+  return safe + '-' + AECreateContext.hashString(source).replace(':', '-') + '.json';
+};
+
+AECreateContext.findEffectInfo = function (query) {
+  var needle = String(query || '').replace(/^\s+|\s+$/g, '').toLowerCase();
+  if (!needle) return null;
+  var effects = AECreateContext.availableEffectsList();
+  var partial = null;
+  for (var i = 0; i < effects.length; i++) {
+    var name = String(effects[i].name || '').toLowerCase();
+    var matchName = String(effects[i].matchName || '').toLowerCase();
+    if (name === needle || matchName === needle) return effects[i];
+    if (!partial && (name.indexOf(needle) !== -1 || matchName.indexOf(needle) !== -1)) partial = effects[i];
+  }
+  return partial;
+};
+
+AECreateContext.effectScanOptions = function (options) {
+  options = options || {};
+  return {
+    maxDepth: options.maxDepth > 0 ? options.maxDepth : 8,
+    maxRecords: options.maxRecords > 0 ? options.maxRecords : 12000,
+    errors: [],
+    count: 0,
+    truncated: false
+  };
+};
+
+AECreateContext.effectParameterTree = function (group, options, depth, path, matchPath) {
+  var output = [];
+  options = options || AECreateContext.effectScanOptions({});
+  depth = depth || 0;
+  path = path || [];
+  matchPath = matchPath || [];
+  if (!group || depth > options.maxDepth) return output;
+
+  var propertyCount = 0;
+  try {
+    propertyCount = group.numProperties;
+  } catch (countError) {
+    options.errors.push(String(countError));
+    return output;
+  }
+
+  for (var i = 1; i <= propertyCount; i++) {
+    if (options.count >= options.maxRecords) {
+      options.truncated = true;
+      break;
+    }
+    options.count++;
+    try {
+      var prop = group.property(i);
+      var name = '';
+      var matchName = '';
+      try {
+        name = prop.name || '';
+        matchName = prop.matchName || '';
+      } catch (nameError) {}
+
+      var record = {
+        index: i,
+        name: name,
+        matchName: matchName,
+        propertyType: prop.propertyType
+      };
+      try {
+        if (prop.propertyValueType !== undefined) record.propertyValueType = prop.propertyValueType;
+      } catch (valueTypeError) {}
+      try {
+        if (prop.canSetExpression !== undefined) record.canSetExpression = prop.canSetExpression === true;
+      } catch (expressionFlagError) {}
+      try {
+        if (prop.canVaryOverTime !== undefined) record.canVaryOverTime = prop.canVaryOverTime === true;
+      } catch (varyError) {}
+      try {
+        if (prop.isTimeVarying !== undefined) record.isTimeVarying = prop.isTimeVarying === true;
+      } catch (timeVaryingError) {}
+
+      var pathName = name || matchName || String(i);
+      var pathMatchName = matchName || name || String(i);
+      record.path = path.concat([pathName]);
+      record.matchPath = matchPath.concat([pathMatchName]);
+
+      if (record.propertyType === PropertyType.PROPERTY) {
+        var state = AECreateContext.propertyValue(prop);
+        record.value = state.value;
+        record.keyCount = state.keyCount;
+        if (state.error) record.error = state.error;
+        try {
+          if (prop.expressionEnabled) record.expression = prop.expression;
+        } catch (expressionError) {
+          record.expressionError = String(expressionError);
+        }
+      } else {
+        record.children = AECreateContext.effectParameterTree(prop, options, depth + 1, record.path, record.matchPath);
+      }
+      output.push(record);
+    } catch (propertyError) {
+      output.push({ index: i, error: String(propertyError), path: path.concat([String(i)]), matchPath: matchPath.concat([String(i)]) });
+    }
+  }
+  return output;
+};
+
+AECreateContext.effectParamsFolder = function () {
+  return AECreateBridge.ensureFolder(new Folder(AECreateBridge.bridgeFolder().fsName + '/effect-params'), 'effect params folder');
+};
+
+AECreateContext.writeEffectCatalog = function (effects) {
+  var file = new File(AECreateBridge.bridgeFolder().fsName + '/effect-catalog.json');
+  var catalog = {
+    schemaVersion: 1,
+    scannedAt: new Date().toString(),
+    effects: effects || AECreateContext.availableEffectsList()
+  };
+  AECreateBridge.writeText(file, AECreateJSON.stringify(catalog));
+  return file.fsName;
+};
+
+AECreateContext.writeEffectScan = function (scan) {
+  var folder = AECreateContext.effectParamsFolder();
+  var file = new File(folder.fsName + '/' + AECreateContext.effectScanFileName(scan.effect.matchName || scan.effect.name));
+  AECreateBridge.writeText(file, AECreateJSON.stringify(scan));
+  return file.fsName;
+};
+
+AECreateContext.scanEffectParametersData = function (effectInfo, options) {
+  var comp = AECreateContext.activeComp();
+  if (!comp) AECreateBridge.fail('No active composition. Open a comp before scanning plugin parameters.');
+  var scanOptions = AECreateContext.effectScanOptions(options || {});
+  var layer = null;
+  var undoOpen = false;
+  try {
+    app.beginUndoGroup('AEcreate Scan Effect Parameters');
+    undoOpen = true;
+    layer = comp.layers.addSolid([0, 0, 0], 'AEcreate effect scan temp', comp.width, comp.height, comp.pixelAspect, 1);
+    var effects = layer.property('ADBE Effect Parade');
+    var effect = null;
+    try {
+      effect = effects.addProperty(effectInfo.matchName || effectInfo.name);
+    } catch (matchError) {
+      effect = effects.addProperty(effectInfo.name || effectInfo.matchName);
+    }
+    if (!effect) AECreateBridge.fail('Unable to add effect for scanning: ' + (effectInfo.matchName || effectInfo.name));
+    var params = AECreateContext.effectParameterTree(effect, scanOptions, 0, [], []);
+    layer.remove();
+    layer = null;
+    app.endUndoGroup();
+    undoOpen = false;
+    return {
+      schemaVersion: 1,
+      scannedAt: new Date().toString(),
+      effect: effectInfo,
+      params: params,
+      parameterCount: scanOptions.count,
+      truncated: scanOptions.truncated,
+      errors: scanOptions.errors
+    };
+  } catch (error) {
+    if (layer) {
+      try {
+        layer.remove();
+      } catch (removeError) {}
+    }
+    if (undoOpen) {
+      try {
+        app.endUndoGroup();
+      } catch (undoError) {}
+    }
+    throw error;
+  }
+};
+
+AECreateBridge.scanEffectParams = function (payloadText) {
+  try {
+    var payload = AECreateJSON.parse(payloadText || '{}');
+    var effectInfo = AECreateContext.findEffectInfo(payload.query || payload.matchName || payload.name);
+    if (!effectInfo) AECreateBridge.fail('Effect not found: ' + (payload.query || payload.matchName || payload.name || ''));
+    AECreateContext.writeEffectCatalog();
+    var scan = AECreateContext.scanEffectParametersData(effectInfo, payload);
+    var outputPath = AECreateContext.writeEffectScan(scan);
+    return AECreateBridge.respond({
+      ok: true,
+      message: 'Scanned plugin parameters: ' + (effectInfo.name || effectInfo.matchName),
+      effect: effectInfo,
+      outputPath: outputPath,
+      parameterCount: scan.parameterCount,
+      truncated: scan.truncated
+    });
+  } catch (error) {
+    return AECreateBridge.respond({ ok: false, error: String(error) });
+  }
+};
+
+AECreateBridge.scanAllEffectParams = function (payloadText) {
+  try {
+    var payload = AECreateJSON.parse(payloadText || '{}');
+    var effects = AECreateContext.availableEffectsList();
+    var catalogPath = AECreateContext.writeEffectCatalog(effects);
+    var report = {
+      schemaVersion: 1,
+      scannedAt: new Date().toString(),
+      catalogPath: catalogPath,
+      scanned: [],
+      failed: []
+    };
+    var maxEffects = payload.maxEffects > 0 ? Math.min(payload.maxEffects, effects.length) : effects.length;
+    for (var i = 0; i < maxEffects; i++) {
+      try {
+        var scan = AECreateContext.scanEffectParametersData(effects[i], payload);
+        var outputPath = AECreateContext.writeEffectScan(scan);
+        report.scanned.push({
+          name: effects[i].name,
+          matchName: effects[i].matchName,
+          outputPath: outputPath,
+          parameterCount: scan.parameterCount,
+          truncated: scan.truncated
+        });
+      } catch (scanError) {
+        report.failed.push({
+          name: effects[i].name,
+          matchName: effects[i].matchName,
+          error: String(scanError)
+        });
+      }
+    }
+    var reportFile = new File(AECreateBridge.bridgeFolder().fsName + '/effect-scan-report.json');
+    AECreateBridge.writeText(reportFile, AECreateJSON.stringify(report));
+    return AECreateBridge.respond({
+      ok: true,
+      message: 'Scanned ' + report.scanned.length + ' of ' + maxEffects + ' plugins. Failed: ' + report.failed.length + '.',
+      catalogPath: catalogPath,
+      reportPath: reportFile.fsName,
+      scannedCount: report.scanned.length,
+      failedCount: report.failed.length
+    });
+  } catch (error) {
+    return AECreateBridge.respond({ ok: false, error: String(error) });
+  }
+};
+
 AECreateContext.exportContextData = function () {
   var comp = AECreateContext.activeComp();
   if (!comp) return { ok: false, error: 'No active composition.' };

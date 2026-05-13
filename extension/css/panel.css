@@ -55,6 +55,17 @@ body {
   padding: 6px;
 }
 
+.text-input {
+  box-sizing: border-box;
+  width: 100%;
+  background: #171717;
+  color: #f0f0f0;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  padding: 8px;
+  margin-bottom: 8px;
+}
+
 .section {
   border: 1px solid #3a3a3a;
   border-radius: 6px;

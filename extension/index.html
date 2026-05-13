@@ -58,6 +58,16 @@
     </section>
 
     <section class="section">
+      <div class="section-title" data-i18n="effectParamsTitle">插件参数库</div>
+      <input id="effectScanQuery" class="text-input" type="text" value="" placeholder="tc Particular / Deep Glow / CC Particle World">
+      <div class="button-row">
+        <button id="scanEffectParams" data-i18n="scanEffectParams">扫描此插件</button>
+        <button id="scanAllEffectParams" data-i18n="scanAllEffectParams">扫描全部插件</button>
+      </div>
+      <pre id="effectScanStatus" class="box" data-i18n="effectParamsNotScanned">尚未扫描插件参数树。</pre>
+    </section>
+
+    <section class="section">
       <div class="section-heading">
         <div class="section-title" data-i18n="pendingTitle">待应用方案</div>
         <button id="refreshPending" class="compact" data-i18n="refreshPending">刷新方案</button>
