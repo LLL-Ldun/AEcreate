@@ -32,6 +32,10 @@ If the current shell cannot find npm, run `node --test` directly.
 - `docs/superpowers/specs/2026-05-12-ae-codex-effect-bridge-design.md`
 - `docs/superpowers/plans/2026-05-12-ae-codex-effect-bridge-implementation.md`
 
+## Public Update Log
+
+- `docs/public-update-log.md`
+
 ## Safety
 
 Keep project media, AE project files, renders, and bridge runtime data outside this repo. The `.gitignore` excludes common media, AE project, and bridge-output files.
