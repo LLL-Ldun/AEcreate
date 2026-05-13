@@ -38,6 +38,22 @@ This document is public-facing and safe to push. It records shipped updates, vis
 
 ## Update History / 更新记录
 
+### 2026-05-14 - Unicode Bridge and Visible Plugin Parameters / Unicode 桥接与可见插件参数
+
+Commit: `pending`
+
+中文：
+- 修复 CEP 面板从 JSX 桥接层读取方案时中文变成 `????` 的问题；桥接返回值现在会先 URL 编码，面板侧再解码后解析 JSON。
+- 插件参数扫描默认只输出 AE 当前可见且可调的参数，过滤隐藏、禁用和内部空名参数，让扫描结果更贴近用户在效果控件面板里看到的 UI。
+- 新增回归测试覆盖中文方案标题/摘要传输，以及隐藏/禁用/内部参数过滤。
+- 验证：`node --test`，47 项测试通过。
+
+English:
+- Fixed Chinese text turning into `????` when pending plans travel from the JSX bridge back to the CEP panel; bridge responses are now URL-encoded and decoded before JSON parsing.
+- Plugin parameter scans now default to visible, adjustable UI parameters by filtering hidden, disabled, and unnamed internal parameters.
+- Added regression tests for Unicode pending-plan transport and visible-parameter scan filtering.
+- Verification: `node --test`, 47 tests passed.
+
 ### 2026-05-13 - Plugin Scan Intelligence Metadata / 插件扫描智能元数据
 
 Commit: `feat: enrich plugin scan metadata`

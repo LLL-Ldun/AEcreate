@@ -275,6 +275,7 @@ AECreateContext.effectScanOptions = function (options) {
     maxDepth: options.maxDepth > 0 ? options.maxDepth : 8,
     maxRecords: options.maxRecords > 0 ? options.maxRecords : 12000,
     includePluginFiles: options.includePluginFiles !== false,
+    visibleOnly: options.visibleOnly !== false,
     maxPluginFileDepth: options.maxPluginFileDepth > 0 ? options.maxPluginFileDepth : 6,
     maxPluginFileRecords: options.maxPluginFileRecords > 0 ? options.maxPluginFileRecords : 40,
     errors: [],
@@ -290,6 +291,16 @@ AECreateContext.safeReadNumberFlag = function (record, prop, flagName, valueName
       record[outputValue] = prop[valueName];
     }
   } catch (error) {}
+};
+
+AECreateContext.isVisibleScanProperty = function (prop, name) {
+  try {
+    if (prop.elided === true) return false;
+  } catch (elidedError) {}
+  try {
+    if (prop.enabled === false) return false;
+  } catch (enabledError) {}
+  return !!name;
 };
 
 AECreateContext.effectParameterTree = function (group, options, depth, path, matchPath) {
@@ -313,21 +324,27 @@ AECreateContext.effectParameterTree = function (group, options, depth, path, mat
       options.truncated = true;
       break;
     }
-    options.count++;
     try {
       var prop = group.property(i);
       var name = '';
       var matchName = '';
+      var propertyType = null;
       try {
         name = prop.name || '';
         matchName = prop.matchName || '';
       } catch (nameError) {}
+      try {
+        propertyType = prop.propertyType;
+      } catch (typeError) {}
+
+      if (options.visibleOnly && !AECreateContext.isVisibleScanProperty(prop, name)) continue;
+      options.count++;
 
       var record = {
         index: i,
         name: name,
         matchName: matchName,
-        propertyType: prop.propertyType
+        propertyType: propertyType
       };
       try {
         if (prop.propertyValueType !== undefined) record.propertyValueType = prop.propertyValueType;

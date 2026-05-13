@@ -131,6 +131,58 @@ test('effectParameterTree records AE value ranges when exposed', () => {
   assert.equal(records[0].unitsText, '%');
 });
 
+test('effectParameterTree omits hidden disabled and internal parameters from visible scans', () => {
+  const helpers = loadContextHelpers();
+  const visibleProperty = {
+    propertyIndex: 1,
+    name: 'Particles/sec',
+    matchName: 'tc Particular-0146',
+    propertyType: 6212,
+    propertyValueType: 6417,
+    canSetExpression: true,
+    canVaryOverTime: true,
+    isTimeVarying: false,
+    numKeys: 0,
+    value: 100
+  };
+  const hiddenProperty = {
+    propertyIndex: 2,
+    name: 'Emitter Type Old',
+    matchName: 'tc Particular-0005',
+    propertyType: 6212,
+    elided: true,
+    numKeys: 0,
+    value: 1
+  };
+  const disabledProperty = {
+    propertyIndex: 3,
+    name: 'Emitter Size Y',
+    matchName: 'tc Particular-0015',
+    propertyType: 6212,
+    enabled: false,
+    numKeys: 0,
+    value: 500
+  };
+  const internalProperty = {
+    propertyIndex: 4,
+    name: '',
+    matchName: 'tc Particular-0580',
+    propertyType: 6212,
+    numKeys: 0,
+    value: null
+  };
+  const group = {
+    numProperties: 4,
+    property(index) {
+      return [visibleProperty, hiddenProperty, disabledProperty, internalProperty][index - 1] || null;
+    }
+  };
+
+  const records = helpers.effectParameterTree(group, helpers.effectScanOptions({}));
+
+  assert.equal(JSON.stringify(records.map((record) => record.matchName)), JSON.stringify(['tc Particular-0146']));
+});
+
 test('plugin file candidate scoring matches effect identity tokens', () => {
   const helpers = loadContextHelpers();
 

@@ -19,6 +19,9 @@
     var escapedBridgePath = escapeScriptString(bridgePath);
     return [
       '(function () {',
+      '  function encodeResult(text) {',
+      '    return typeof encodeURIComponent === \'function\' ? encodeURIComponent(text) : text;',
+      '  }',
       '  function jsonError(message) {',
       '    return \'{"ok":false,"error":"\' + String(message)',
       '      .replace(/\\\\/g, \'\\\\\\\\\')',
@@ -33,15 +36,15 @@
       '    }',
       '    var functionName = \'' + escapedFunctionName + '\';',
       '    if (typeof AECreateBridge === \'undefined\') {',
-      '      return jsonError(\'AECreateBridge is not loaded for \' + functionName);',
+      '      return encodeResult(jsonError(\'AECreateBridge is not loaded for \' + functionName));',
       '    }',
       '    if (typeof AECreateBridge[functionName] !== \'function\') {',
       '      var warnings = AECreateBridge.loadWarnings && AECreateBridge.loadWarnings.length ? \' Load warnings: \' + AECreateBridge.loadWarnings.join(\'; \') : \'\';',
-      '      return jsonError(\'AECreateBridge.\' + functionName + \' is not a function.\' + warnings);',
+      '      return encodeResult(jsonError(\'AECreateBridge.\' + functionName + \' is not a function.\' + warnings));',
       '    }',
-      '    return AECreateBridge[functionName](\'' + escapedPayload + '\');',
+      '    return encodeResult(AECreateBridge[functionName](\'' + escapedPayload + '\'));',
       '  } catch (error) {',
-      '    return jsonError(\'AECreateBridge.\' + functionName + \' failed: \' + error);',
+      '    return encodeResult(jsonError(\'AECreateBridge.\' + functionName + \' failed: \' + error));',
       '  }',
       '}())'
     ].join('\n');
@@ -53,8 +56,12 @@
     var script = buildScript(functionName, serialized, bridgePath);
     return new Promise(function (resolve) {
       this.cs.evalScript(script, function (raw) {
+        var decoded = raw;
         try {
-          resolve(JSON.parse(raw));
+          decoded = decodeURIComponent(raw);
+        } catch (decodeError) {}
+        try {
+          resolve(JSON.parse(decoded));
         } catch (error) {
           resolve({ ok: false, error: 'Invalid JSX response: ' + raw });
         }
