@@ -37,6 +37,7 @@ test('validatePendingAction accepts layer workflow actions', () => {
       checked: true,
       actions: [
         { type: 'addSolidLayer', ref: 'particles', name: 'AEcreate particles', color: [0, 0, 0] },
+        { type: 'addAdjustmentLayer', ref: 'impactFx', name: 'AEcreate impact fx' },
         { type: 'addLightLayer', ref: 'emitter', name: 'AEcreate emitter', lightType: 'point', position: [640, 360, -200] },
         { type: 'addEffect', targetRef: 'particles', matchName: 'tc Particular' },
         { type: 'setLayerProperties', targetRef: 'particles', blendingMode: 'ADD', inPoint: 27.85, outPoint: 32.85 }
@@ -110,7 +111,7 @@ test('validatePendingAction reports unsupported action type', () => {
 
   assert.ok(
     validatePendingAction(action).includes(
-      'modules[0].actions[0].type must be one of: addEffect, modifyEffect, applyPreset, setProperty, setKeyframes, setExpression, addSolidLayer, addLightLayer, addNullLayer, setLayerProperties'
+      'modules[0].actions[0].type must be one of: addEffect, modifyEffect, applyPreset, setProperty, setKeyframes, setExpression, addSolidLayer, addAdjustmentLayer, addLightLayer, addNullLayer, setLayerProperties'
     )
   );
 });

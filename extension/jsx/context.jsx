@@ -411,6 +411,198 @@ AECreateContext.effectIdentityTokens = function (effectInfo) {
   return tokens;
 };
 
+AECreateContext.supportedActionTypes = [
+  'addEffect',
+  'modifyEffect',
+  'applyPreset',
+  'setProperty',
+  'setKeyframes',
+  'setExpression',
+  'addSolidLayer',
+  'addAdjustmentLayer',
+  'addLightLayer',
+  'addNullLayer',
+  'setLayerProperties'
+];
+
+AECreateContext.effectWorkflowLibrary = function () {
+  return [{
+    id: 'particle-solid-carrier',
+    label: 'Particle Solid Carrier',
+    matchTokens: ['particular', 'particle', 'particles', 'stardust', 'form', 'plexus'],
+    categoryTokens: ['particle', 'particles', '3d'],
+    layerStrategy: 'solidCarrier',
+    effectPlacement: 'carrierLayer',
+    carrierLayer: {
+      type: 'solid',
+      color: [0, 0, 0],
+      blendModes: ['ADD', 'SCREEN'],
+      timing: 'marker-span'
+    },
+    helperLayers: [{
+      type: 'light',
+      purpose: 'emitter-or-light-control',
+      optional: true
+    }, {
+      type: 'null',
+      purpose: 'position-or-expression-control',
+      optional: true
+    }],
+    recommendedActionTypes: ['addSolidLayer', 'addLightLayer', 'addNullLayer', 'addEffect', 'setProperty', 'setKeyframes', 'setExpression', 'setLayerProperties'],
+    notes: [
+      'Create a carrier solid above footage and apply particle/generator effects to that carrier.',
+      'Use ADD or SCREEN when the effect should overlay the original video.',
+      'Use light/null helpers when the plugin supports emitter or position control layers.'
+    ],
+    onlineResearch: {
+      status: 'optional',
+      preferredSources: ['official vendor documentation', 'official tutorials', 'high-quality workflow tutorials']
+    }
+  }, {
+    id: 'adjustment-impact-layer',
+    label: 'Adjustment Impact Layer',
+    matchTokens: ['twitch', 'deep', 'glow', 'rsmb', 'motionblur', 'motion', 'blur', 'shake', 'sapphire', 'bcc', 'pixel', 'sorter', 'looks', 'colorista'],
+    categoryTokens: ['blur', 'stylize', 'distort', 'color', 'video copilot', 'sapphire', 'boris', 'red giant'],
+    layerStrategy: 'adjustmentLayer',
+    effectPlacement: 'adjustmentLayer',
+    carrierLayer: {
+      type: 'adjustment',
+      timing: 'marker-span'
+    },
+    helperLayers: [],
+    recommendedActionTypes: ['addAdjustmentLayer', 'addEffect', 'setProperty', 'setKeyframes', 'setExpression', 'setLayerProperties'],
+    notes: [
+      'Create a trimmed adjustment layer above the footage for non-destructive impact, glow, blur, shake, color, or glitch effects.',
+      'Keep the original footage layer unchanged unless the user asks for source-layer treatment.'
+    ],
+    onlineResearch: {
+      status: 'optional',
+      preferredSources: ['official vendor documentation', 'official tutorials', 'high-quality workflow tutorials']
+    }
+  }, {
+    id: 'source-retime-layer',
+    label: 'Source Retime Layer',
+    matchTokens: ['twixtor', 'timewarp', 'time', 'retime', 'retimer', 'remap'],
+    categoryTokens: ['revision', 'time'],
+    layerStrategy: 'sourceLayer',
+    effectPlacement: 'sourceLayer',
+    destructiveRisk: 'retimes-source-layer',
+    carrierLayer: null,
+    helperLayers: [],
+    recommendedActionTypes: ['addEffect', 'setProperty', 'setKeyframes', 'setExpression'],
+    notes: [
+      'Apply retime effects to the footage/precomp layer being retimed.',
+      'Prefer duplicating or precomping source footage when the edit should remain reversible.',
+      'Do not default to adjustment layers for source timing effects.'
+    ],
+    onlineResearch: {
+      status: 'optional',
+      preferredSources: ['official vendor documentation', 'official tutorials', 'high-quality workflow tutorials']
+    }
+  }];
+};
+
+AECreateContext.workflowSearchText = function (effectInfo) {
+  return [
+    effectInfo && effectInfo.name,
+    effectInfo && effectInfo.matchName,
+    effectInfo && effectInfo.category
+  ].join(' ').toLowerCase().replace(/[^a-z0-9]+/g, ' ');
+};
+
+AECreateContext.workflowEntryScore = function (entry, effectInfo) {
+  var text = AECreateContext.workflowSearchText(effectInfo);
+  var score = 0;
+  var matched = [];
+  function scoreTokens(tokens, weight, prefix) {
+    if (!(tokens instanceof Array)) return;
+    for (var i = 0; i < tokens.length; i++) {
+      var token = String(tokens[i] || '').toLowerCase();
+      if (!token) continue;
+      if (text.indexOf(token) !== -1) {
+        score += weight;
+        matched.push(prefix + ':' + token);
+      }
+    }
+  }
+  scoreTokens(entry.matchTokens, 3, 'name');
+  scoreTokens(entry.categoryTokens, 1, 'category');
+  return { score: score, matched: matched };
+};
+
+AECreateContext.cloneWorkflowEntry = function (entry) {
+  return AECreateJSON.parse(AECreateJSON.stringify(entry));
+};
+
+AECreateContext.unknownPluginWorkflow = function (effectInfo) {
+  var displayName = (effectInfo && (effectInfo.name || effectInfo.matchName)) || 'unknown AE effect';
+  return {
+    schemaVersion: 1,
+    id: 'unknown-plugin-workflow',
+    label: 'Unknown Plugin Workflow',
+    confidence: 'low',
+    matchedBy: [],
+    layerStrategy: 'unknown',
+    effectPlacement: 'targetLayer',
+    carrierLayer: null,
+    helperLayers: [],
+    destructiveRisk: 'unknown',
+    recommendedActionTypes: ['addEffect', 'setProperty', 'setKeyframes', 'setExpression'],
+    notes: [
+      'No built-in workflow entry matched this plugin.',
+      'Use scanned parameters cautiously and research the plugin workflow before generating layer-creation actions.'
+    ],
+    onlineResearch: {
+      status: 'needed',
+      queries: [
+        displayName + ' After Effects official documentation workflow',
+        displayName + ' After Effects tutorial adjustment layer solid layer light null',
+        displayName + ' plugin user guide After Effects'
+      ],
+      preferredSources: ['official vendor documentation', 'official tutorials', 'high-quality workflow tutorials']
+    }
+  };
+};
+
+AECreateContext.pluginWorkflow = function (effectInfo) {
+  var library = AECreateContext.effectWorkflowLibrary();
+  var best = null;
+  var bestScore = 0;
+  var bestMatched = [];
+  for (var i = 0; i < library.length; i++) {
+    var result = AECreateContext.workflowEntryScore(library[i], effectInfo);
+    if (result.score > bestScore) {
+      best = library[i];
+      bestScore = result.score;
+      bestMatched = result.matched;
+    }
+  }
+  if (!best) return AECreateContext.unknownPluginWorkflow(effectInfo);
+  var workflow = AECreateContext.cloneWorkflowEntry(best);
+  workflow.schemaVersion = 1;
+  workflow.confidence = bestScore >= 3 ? 'medium' : 'low';
+  if (bestScore >= 6) workflow.confidence = 'high';
+  workflow.matchedBy = bestMatched;
+  return workflow;
+};
+
+AECreateContext.effectWorkflowCatalog = function (effects) {
+  var source = effects || AECreateContext.availableEffectsList();
+  var output = [];
+  for (var i = 0; i < source.length; i++) {
+    output.push({
+      effect: source[i],
+      workflow: AECreateContext.pluginWorkflow(source[i])
+    });
+  }
+  return {
+    schemaVersion: 1,
+    version: '2026-05-13',
+    generatedAt: new Date().toString(),
+    effects: output
+  };
+};
+
 AECreateContext.pluginFileCandidateScore = function (effectInfo, filePath) {
   var tokens = AECreateContext.effectIdentityTokens(effectInfo);
   var normalizedPath = String(filePath || '').toLowerCase().replace(/\\/g, '/');
@@ -524,12 +716,21 @@ AECreateContext.effectParamsFolder = function () {
 
 AECreateContext.writeEffectCatalog = function (effects) {
   var file = new File(AECreateBridge.bridgeFolder().fsName + '/effect-catalog.json');
+  var workflowPath = AECreateContext.writeEffectWorkflowCatalog(effects);
   var catalog = {
     schemaVersion: 1,
     scannedAt: new Date().toString(),
+    workflowLibraryPath: 'effect-workflows.json',
+    workflowLibraryFullPath: workflowPath,
     effects: effects || AECreateContext.availableEffectsList()
   };
   AECreateBridge.writeText(file, AECreateJSON.stringify(catalog));
+  return file.fsName;
+};
+
+AECreateContext.writeEffectWorkflowCatalog = function (effects) {
+  var file = new File(AECreateBridge.bridgeFolder().fsName + '/effect-workflows.json');
+  AECreateBridge.writeText(file, AECreateJSON.stringify(AECreateContext.effectWorkflowCatalog(effects)));
   return file.fsName;
 };
 
@@ -589,6 +790,7 @@ AECreateContext.scanEffectParametersData = function (effectInfo, options) {
       schemaVersion: 1,
       scannedAt: new Date().toString(),
       effect: effectInfo,
+      workflow: AECreateContext.pluginWorkflow(effectInfo),
       pluginFiles: AECreateContext.pluginFileCandidates(effectInfo, scanOptions),
       params: params,
       parameterCount: scanOptions.count,
@@ -662,6 +864,7 @@ AECreateBridge.scanAllEffectParams = function (payloadText) {
           name: effects[i].name,
           matchName: effects[i].matchName,
           outputPath: outputPath,
+          workflow: scan.workflow,
           parameterCount: scan.parameterCount,
           truncated: scan.truncated
         });
@@ -711,6 +914,13 @@ AECreateContext.exportContextData = function () {
     compMarkers: AECreateContext.markerList(comp.markerProperty),
     availableEffects: AECreateContext.availableEffectsList(),
     presetCachePath: 'preset-cache.json',
+    effectWorkflowLibraryPath: 'effect-workflows.json',
+    pluginWorkflowLibrary: {
+      schemaVersion: 1,
+      version: '2026-05-13',
+      entries: AECreateContext.effectWorkflowLibrary()
+    },
+    supportedActionTypes: AECreateContext.supportedActionTypes,
     panelSettings: AECreateBridge.settings()
   };
   context.contextFingerprint = AECreateContext.fingerprintContext(context);

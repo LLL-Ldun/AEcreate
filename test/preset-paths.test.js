@@ -82,6 +82,38 @@ test('availableEffectsList exports installed effect metadata when AE exposes it'
   }]));
 });
 
+test('exportContextData includes the built-in plugin workflow library', () => {
+  class CompItem {}
+  const comp = new CompItem();
+  comp.name = 'Comp';
+  comp.width = 1280;
+  comp.height = 720;
+  comp.frameRate = 60;
+  comp.duration = 30;
+  comp.time = 1;
+  comp.selectedLayers = [];
+  comp.markerProperty = { numKeys: 0 };
+  const { helpers } = loadContextHelpers({
+    AECreateBridge: {
+      settings() {
+        return {};
+      }
+    },
+    app: {
+      project: { activeItem: comp, file: { fsName: 'C:/Project/test.aep' } },
+      effects: []
+    },
+    CompItem
+  });
+
+  const result = helpers.exportContextData();
+
+  assert.equal(result.ok, true);
+  assert.equal(result.context.effectWorkflowLibraryPath, 'effect-workflows.json');
+  assert.ok(result.context.pluginWorkflowLibrary.entries.some((entry) => entry.id === 'particle-solid-carrier'));
+  assert.ok(result.context.supportedActionTypes.includes('addAdjustmentLayer'));
+});
+
 test('layerRecord includes source and transform context', () => {
   const { helpers } = loadContextHelpers({
     PropertyType: { PROPERTY: 1 }

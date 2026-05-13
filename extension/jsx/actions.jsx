@@ -135,6 +135,7 @@ AECreateActions.allowedActionTypes = [
   'setKeyframes',
   'setExpression',
   'addSolidLayer',
+  'addAdjustmentLayer',
   'addLightLayer',
   'addNullLayer',
   'setLayerProperties'
@@ -503,6 +504,20 @@ AECreateActions.addSolidLayer = function (context, action) {
   return layer;
 };
 
+AECreateActions.addAdjustmentLayer = function (context, action) {
+  var comp = context.comp || AECreateActions.activeComp();
+  if (!comp || !comp.layers || !comp.layers.addSolid) AECreateBridge.fail('No active composition available for addAdjustmentLayer.');
+  var name = action.name || action.ref || 'AEcreate Adjustment';
+  var duration = AECreateActions.numberOrDefault(action.duration, comp.duration);
+  var layer = comp.layers.addSolid([1, 1, 1], name, comp.width, comp.height, comp.pixelAspect || 1, duration);
+  layer.adjustmentLayer = true;
+  AECreateActions.applyLayerTiming(layer, action, comp);
+  AECreateActions.applyLayerComposite(layer, action);
+  AECreateActions.applyLayerPlacement(context, layer, action);
+  AECreateActions.rememberLayerRef(context, action, layer);
+  return layer;
+};
+
 AECreateActions.addNullLayer = function (context, action) {
   var comp = context.comp || AECreateActions.activeComp();
   if (!comp || !comp.layers || !comp.layers.addNull) AECreateBridge.fail('No active composition available for addNullLayer.');
@@ -558,6 +573,10 @@ AECreateActions.applyAction = function (contextOrLayer, action) {
   if (!action || !action.type) AECreateBridge.fail('Action type is required.');
   if (action.type === 'addSolidLayer') {
     AECreateActions.addSolidLayer(context, action);
+    return;
+  }
+  if (action.type === 'addAdjustmentLayer') {
+    AECreateActions.addAdjustmentLayer(context, action);
     return;
   }
   if (action.type === 'addLightLayer') {

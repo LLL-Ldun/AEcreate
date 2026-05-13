@@ -143,6 +143,134 @@ test('plugin file candidate scoring matches effect identity tokens', () => {
   assert.ok(score > 0);
 });
 
+test('pluginWorkflow recommends carrier and helper layers for particle effects', () => {
+  const helpers = loadContextHelpers();
+
+  const workflow = helpers.pluginWorkflow({
+    name: 'Trapcode Particular',
+    matchName: 'tc Particular',
+    category: 'RG Particles and 3D'
+  });
+
+  assert.equal(workflow.layerStrategy, 'solidCarrier');
+  assert.equal(workflow.carrierLayer.type, 'solid');
+  assert.deepEqual(workflow.helperLayers.map((layer) => layer.type), ['light', 'null']);
+  assert.ok(workflow.recommendedActionTypes.includes('addSolidLayer'));
+  assert.ok(workflow.recommendedActionTypes.includes('addLightLayer'));
+  assert.ok(workflow.recommendedActionTypes.includes('setLayerProperties'));
+});
+
+test('pluginWorkflow distinguishes adjustment-layer and source-layer effects', () => {
+  const helpers = loadContextHelpers();
+
+  const twitch = helpers.pluginWorkflow({
+    name: 'Twitch',
+    matchName: 'Twitch',
+    category: 'Video Copilot'
+  });
+  const twixtor = helpers.pluginWorkflow({
+    name: 'Twixtor Pro',
+    matchName: 'Twixtor Pro',
+    category: 'RE:Vision Effects'
+  });
+
+  assert.equal(twitch.layerStrategy, 'adjustmentLayer');
+  assert.ok(twitch.recommendedActionTypes.includes('addAdjustmentLayer'));
+  assert.equal(twixtor.layerStrategy, 'sourceLayer');
+  assert.equal(twixtor.destructiveRisk, 'retimes-source-layer');
+  assert.equal(twixtor.recommendedActionTypes.includes('addAdjustmentLayer'), false);
+});
+
+test('pluginWorkflow marks unknown plugins for future online research', () => {
+  const helpers = loadContextHelpers();
+
+  const workflow = helpers.pluginWorkflow({
+    name: 'Mystery Render FX',
+    matchName: 'Mystery Render FX',
+    category: 'Unknown Vendor'
+  });
+
+  assert.equal(workflow.layerStrategy, 'unknown');
+  assert.equal(workflow.onlineResearch.status, 'needed');
+  assert.ok(workflow.onlineResearch.queries[0].includes('Mystery Render FX'));
+  assert.ok(workflow.recommendedActionTypes.includes('addEffect'));
+});
+
+test('effectWorkflowCatalog records workflows for available effects', () => {
+  const helpers = loadContextHelpers();
+
+  const catalog = helpers.effectWorkflowCatalog([{
+    name: 'Deep Glow',
+    matchName: 'Deep Glow',
+    category: 'Plugin Everything'
+  }, {
+    name: 'Mystery Render FX',
+    matchName: 'Mystery Render FX',
+    category: 'Unknown Vendor'
+  }]);
+
+  assert.equal(catalog.schemaVersion, 1);
+  assert.equal(catalog.effects.length, 2);
+  assert.equal(catalog.effects[0].workflow.layerStrategy, 'adjustmentLayer');
+  assert.equal(catalog.effects[1].workflow.layerStrategy, 'unknown');
+  assert.equal(catalog.effects[1].workflow.onlineResearch.status, 'needed');
+});
+
+test('scanEffectParametersData includes inferred plugin workflow', () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', 'extension', 'jsx', 'context.jsx'), 'utf8');
+  class CompItem {}
+  const effect = { numProperties: 0 };
+  const layer = {
+    property(name) {
+      if (name === 'ADBE Effect Parade') {
+        return {
+          addProperty(effectName) {
+            assert.equal(effectName, 'Twitch');
+            return effect;
+          }
+        };
+      }
+      return null;
+    },
+    remove() {}
+  };
+  const comp = new CompItem();
+  comp.width = 1280;
+  comp.height = 720;
+  comp.pixelAspect = 1;
+  comp.layers = {
+    addSolid() {
+      return layer;
+    }
+  };
+  const context = {
+    AECreateContext: {},
+    AECreateJSON: JSON,
+    AECreateBridge: {
+      fail(message) {
+        throw new Error(message);
+      }
+    },
+    app: {
+      project: { activeItem: comp },
+      beginUndoGroup() {},
+      endUndoGroup() {}
+    },
+    CompItem,
+    PropertyType: { PROPERTY: 6212 }
+  };
+
+  vm.runInNewContext(source, context, { filename: 'context.jsx' });
+  const scan = context.AECreateContext.scanEffectParametersData({
+    name: 'Twitch',
+    matchName: 'Twitch',
+    category: 'Video Copilot'
+  }, { includePluginFiles: false });
+
+  assert.equal(scan.workflow.layerStrategy, 'adjustmentLayer');
+  assert.ok(scan.workflow.recommendedActionTypes.includes('addAdjustmentLayer'));
+});
+
 test('findEffectInfo matches installed effects by display name or match name', () => {
   const helpers = loadContextHelpers({
     app: {

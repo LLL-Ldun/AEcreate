@@ -230,3 +230,90 @@ test('applyModule can target effects at a newly created particle layer', () => {
   assert.deepEqual(Array.from(result.lightValues['ADBE Position']), [640, 360, -200]);
   assert.deepEqual(Array.from(result.calls).map((call) => call.type), ['addSolid', 'moveBefore', 'addLight', 'solidEffect']);
 });
+
+test('applyModule can create and target an adjustment layer workflow', () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', 'extension', 'jsx', 'actions.jsx'), 'utf8');
+
+  class CompItem {}
+  const context = vm.createContext({
+    AECreateBridge: {
+      respond(object) {
+        return JSON.stringify(object);
+      },
+      fail(message) {
+        throw new Error(message);
+      }
+    },
+    app: { project: { activeItem: null } },
+    CompItem,
+    BlendingMode: { NORMAL: 'NORMAL' },
+    Error,
+    String,
+    isFinite,
+    Math
+  });
+  context.AECreateJSON = vm.runInContext('JSON', context);
+
+  vm.runInContext(source, context, { filename: 'actions.jsx' });
+  const result = vm.runInContext(`
+    (function () {
+      var calls = [];
+      var targetLayer = { name: 'clip.mp4' };
+      var adjustmentEffects = {
+        added: [],
+        numProperties: 0,
+        addProperty: function (name) {
+          this.added.push(name);
+          this.numProperties = this.added.length;
+          return { name: name, matchName: name };
+        }
+      };
+      var adjustmentLayer = {
+        name: '',
+        property: function (name) {
+          if (name === 'ADBE Effect Parade') return adjustmentEffects;
+          return null;
+        },
+        moveBefore: function (layer) {
+          calls.push({ type: 'moveBefore', target: layer.name });
+        }
+      };
+      var comp = new CompItem();
+      comp.width = 1280;
+      comp.height = 720;
+      comp.pixelAspect = 1;
+      comp.duration = 20;
+      comp.layers = {
+        addSolid: function (color, name, width, height, pixelAspect, duration) {
+          calls.push({ type: 'addSolid', color: color, name: name, duration: duration });
+          adjustmentLayer.name = name;
+          return adjustmentLayer;
+        }
+      };
+
+      AECreateActions.applyModule(targetLayer, {
+        id: 'm1',
+        title: 'Twitch adjustment',
+        summary: 'Create adjustment layer workflow.',
+        actions: [
+          { type: 'addAdjustmentLayer', ref: 'impactFx', name: 'AEcreate impact fx', inPoint: 2, outPoint: 3 },
+          { type: 'addEffect', targetRef: 'impactFx', matchName: 'Twitch' }
+        ]
+      }, 0, { comp: comp, targetLayer: targetLayer, layersByRef: {} });
+
+      return {
+        calls: calls,
+        adjustmentLayer: adjustmentLayer.adjustmentLayer,
+        inPoint: adjustmentLayer.inPoint,
+        outPoint: adjustmentLayer.outPoint,
+        effects: adjustmentEffects.added
+      };
+    })()
+  `, context);
+
+  assert.equal(result.adjustmentLayer, true);
+  assert.equal(result.inPoint, 2);
+  assert.equal(result.outPoint, 3);
+  assert.deepEqual(Array.from(result.effects), ['Twitch']);
+  assert.deepEqual(Array.from(result.calls).map((call) => call.type), ['addSolid', 'moveBefore']);
+});

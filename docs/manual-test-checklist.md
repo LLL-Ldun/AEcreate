@@ -19,10 +19,12 @@
 - [ ] In `Plugin Params`, type a partial query such as `p` and confirm matching installed effects appear in a scrollable suggestion list.
 - [ ] Click a plugin suggestion and confirm the search input is filled with that plugin name.
 - [ ] Click `Scan Plugin`.
-- [ ] Confirm `<bridge-folder>/effect-catalog.json` and an `effect-params/*.json` file are created.
+- [ ] Confirm `<bridge-folder>/effect-catalog.json`, `<bridge-folder>/effect-workflows.json`, and an `effect-params/*.json` file are created.
 - [ ] Scan the same plugin again and confirm old `effect-params/*.json` files for that same plugin are removed instead of accumulating duplicates.
 - [ ] Confirm the parameter JSON includes parameter display names, match names, value types, paths, current values, and keyframe/expression capability flags where AE exposes them.
 - [ ] Confirm the parameter JSON includes `hasMin`/`minValue` and `hasMax`/`maxValue` for ranged properties where AE exposes them.
+- [ ] Confirm the parameter JSON includes `workflow`, and that known particle/generator plugins prefer a solid carrier while known impact/glow/blur/glitch plugins prefer an adjustment layer.
+- [ ] Confirm unknown plugins are marked with `workflow.layerStrategy: "unknown"` and include `onlineResearch.queries` for later official-doc/tutorial lookup.
 - [ ] Confirm the parameter JSON includes `pluginFiles` candidates for plugin binaries when matching files can be found locally.
 - [ ] Click `Scan All Plugins` only in a disposable test project, confirm the warning prompt appears, and confirm `<bridge-folder>/effect-scan-report.json` records scanned and failed plugins.
 - [ ] Add a test `pending-action.json` that applies a harmless preset or changes an existing effect property.
@@ -31,9 +33,6 @@
 - [ ] Confirm pending plan target, warnings, requirements, and action counts are visible when provided.
 - [ ] Replace `pending-action.json` with a second plan, click `Refresh Plan`, and confirm the first plan remains visible under Plan History.
 - [ ] Click a Plan History item and confirm it is restored as the current pending plan.
-- [ ] For a layer-workflow apply test, copy `examples/pending-actions/particular-overlay-workflow.json` to `<bridge-folder>/pending-action.json`, then set `target.layerIndex`, `target.layerName`, and `contextFingerprint` to the values shown in `current-context.json`.
-- [ ] Apply the Particular overlay test in a disposable comp and confirm `tc Particular` is added to a new `AEcreate Particular Carrier` solid above the footage, not to the original footage layer.
-- [ ] Confirm the new particle carrier has `ADD` blending mode and the requested in/out range, so the original footage remains visible underneath.
 - [ ] Apply one checked module.
 - [ ] Confirm the effect appears or updates on the selected layer.
 - [ ] Press Ctrl+Z once in AE and confirm the full applied module reverts.

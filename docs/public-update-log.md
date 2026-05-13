@@ -18,7 +18,7 @@ This document is public-facing and safe to push. It records shipped updates, vis
 - 结构化执行器：支持 `addEffect`、`modifyEffect`、`applyPreset`、`setProperty`、`setKeyframes`、`setExpression`。
 - 安全校验：应用前校验 schema、目标图层、动作类型和 `contextFingerprint`，并在 AE undo group 内执行。
 - 中英文面板：面板支持中文和 English 切换，并保存语言偏好。
-- 插件参数库：支持扫描 AE 已安装效果插件的参数树，输出 `effect-catalog.json`、`effect-scan-report.json` 和 `effect-params/*.json`。
+- 插件参数库：支持扫描 AE 已安装效果插件的参数树和 workflow，输出 `effect-catalog.json`、`effect-workflows.json`、`effect-scan-report.json` 和 `effect-params/*.json`。
 - 插件搜索候选：在插件参数库输入框中输入字母时，会像 AE Effects 搜索一样展示已安装插件候选，点击后可直接扫描。
 
 ### English
@@ -33,7 +33,7 @@ This document is public-facing and safe to push. It records shipped updates, vis
 - Structured executor: supports `addEffect`, `modifyEffect`, `applyPreset`, `setProperty`, `setKeyframes`, `setExpression`, layer creation actions, and layer property actions.
 - Safety gates: validates schema, target layer, action type, and `contextFingerprint` before applying, then executes inside an AE undo group.
 - Bilingual panel: supports Chinese and English UI text with saved language preference.
-- Plugin parameter library: scans installed AE effect plugin parameter trees and writes `effect-catalog.json`, `effect-scan-report.json`, and `effect-params/*.json`.
+- Plugin parameter library: scans installed AE effect plugin parameter trees and workflows, then writes `effect-catalog.json`, `effect-workflows.json`, `effect-scan-report.json`, and `effect-params/*.json`.
 - Plugin search suggestions: typing in the Plugin Params field shows installed-effect suggestions similar to AE Effects search, and clicking one fills the scan input.
 
 ## Update History / 更新记录
@@ -274,8 +274,7 @@ Commit: `feat: add layer workflow actions`
 - 扩展 `pending-action.json` 动作协议，新增 `addSolidLayer`、`addLightLayer`、`addNullLayer` 和 `setLayerProperties`。
 - 执行器新增模块级 `ref` / `targetRef` 图层引用表，后续动作可以明确作用到新建图层，而不是只能作用到原始目标素材层。
 - 支持在 AE 中新建粒子承载 Solid、灯光层和 Null 控制层，并设置 in/out、混合模式、透明度等图层属性。
-- 新增 Trapcode Particular 工作流说明，明确粒子叠加类效果应优先创建承载层并用 `ADD` / `SCREEN` 合成，不应默认直接套到原视频层上。
-- 新增 Particular 叠加工作流示例 `examples/pending-actions/particular-overlay-workflow.json`。
+- 新增图层工作流基础能力，后续由通用插件 workflow 库决定何时创建承载层、调整层、灯光层或 Null 控制层。
 - 新增回归测试，确保 `tc Particular` 会加到新建粒子承载层上，而不是加到原始视频层。
 
 English:
@@ -283,6 +282,25 @@ English:
 - Extended the `pending-action.json` action protocol with `addSolidLayer`, `addLightLayer`, `addNullLayer`, and `setLayerProperties`.
 - Added a per-module `ref` / `targetRef` layer registry so later actions can target newly created layers instead of only the original selected footage layer.
 - Added AE execution support for particle carrier solids, light layers, null control layers, layer timing, blend mode, and opacity settings.
-- Added Trapcode Particular workflow notes that document the correct carrier-layer compositing workflow for overlay particles.
-- Added `examples/pending-actions/particular-overlay-workflow.json`.
+- Added the layer-workflow foundation that the generic plugin workflow library can use for carrier, adjustment, light, and null helper flows.
 - Added regression coverage proving `tc Particular` is applied to the new particle carrier layer, not the original footage layer.
+
+### 2026-05-13 - Built-In Plugin Workflow Library / 内置插件 workflow 库
+
+Commit: `feat: add plugin workflow library`
+
+中文：
+
+- 新增内置插件 workflow 库，不再单独保留 Particular 工作流说明或单独示例方案。
+- 扫描插件参数时同步生成 workflow：单插件扫描写入 `effect-params/*.json`，全量/目录扫描写入 `effect-workflows.json`。
+- workflow 会标记插件更适合 `sourceLayer`、`adjustmentLayer`、`solidCarrier` 或 `unknown`，并给出推荐结构化动作。
+- 新增 `addAdjustmentLayer` 动作，让 Twitch、Deep Glow、RSMB、冲击、发光、模糊、故障、调色类效果可以走调整层流程。
+- 未匹配插件会保留参数树并标记为 `unknown`，同时写入 `onlineResearch.queries`，后续可由 Codex 联网读取官方说明或教程后补充库规则。
+
+English:
+
+- Added a built-in plugin workflow library and removed the standalone Particular workflow note/example from the current tree.
+- Plugin parameter scans now emit workflow metadata in `effect-params/*.json`; catalog scans also write `effect-workflows.json`.
+- Workflows classify effects as `sourceLayer`, `adjustmentLayer`, `solidCarrier`, or `unknown`, with recommended structured actions.
+- Added `addAdjustmentLayer` so Twitch, Deep Glow, RSMB, impact, glow, blur, glitch, and color workflows can use trimmed adjustment layers.
+- Unknown plugins keep their scanned parameter trees and include `onlineResearch.queries` so Codex can later research official docs or tutorials and promote new rules into the library.

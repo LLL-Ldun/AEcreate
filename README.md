@@ -11,7 +11,7 @@ AEcreate 是一个可停靠在 After Effects 里的 CEP 扩展面板，用来把
 - Shows Codex-generated `pending-action.json` plans as checkable modules before applying anything in AE.
 - Applies checked modules inside an AE undo group.
 - Scans AE `.ffx` presets from user, install, and custom preset folders.
-- Scans installed AE effect plugin parameter trees into machine-readable JSON.
+- Scans installed AE effect plugin parameter trees into machine-readable JSON, including built-in workflow guidance.
 - Provides plugin search suggestions in the panel, similar to AE Effects search.
 - Supports Chinese and English panel UI.
 
@@ -48,11 +48,12 @@ AEcreate currently supports these structured action types:
 - `setKeyframes`
 - `setExpression`
 - `addSolidLayer`
+- `addAdjustmentLayer`
 - `addLightLayer`
 - `addNullLayer`
 - `setLayerProperties`
 
-Layer workflow actions can create carrier/control layers and then target later effect actions with `targetRef`. This is important for plugins such as Trapcode Particular, where particles should usually live on a composited solid above the footage instead of being applied directly to the original video layer.
+Layer workflow actions can create carrier/control layers and then target later effect actions with `targetRef`. Plugin scans also write workflow guidance so Codex can choose source-layer, adjustment-layer, solid-carrier, light, or null helper flows instead of treating every plugin as a direct effect on the footage layer.
 
 ## Install For Development
 
@@ -82,7 +83,7 @@ node --test
 
 - Public update log: `docs/public-update-log.md`
 - Manual AE test checklist: `docs/manual-test-checklist.md`
-- Trapcode Particular workflow notes: `docs/plugin-workflows/trapcode-particular.md`
+- Plugin workflow library: `docs/plugin-workflow-library.md`
 - Design spec: `docs/superpowers/specs/2026-05-12-ae-codex-effect-bridge-design.md`
 - Implementation plan: `docs/superpowers/plans/2026-05-12-ae-codex-effect-bridge-implementation.md`
 
