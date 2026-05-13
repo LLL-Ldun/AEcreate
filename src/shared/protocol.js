@@ -13,7 +13,11 @@ const allowedActionTypes = [
   'applyPreset',
   'setProperty',
   'setKeyframes',
-  'setExpression'
+  'setExpression',
+  'addSolidLayer',
+  'addLightLayer',
+  'addNullLayer',
+  'setLayerProperties'
 ];
 
 function normalizeSettings(input) {

@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-05-13T00:00:00+08:00",
+  "contextFingerprint": "replace-with-current-context-fingerprint",
+  "title": "Particular Overlay Carrier Workflow",
+  "summary": "Creates a particle carrier layer above the target footage, adds Trapcode Particular to the carrier, and composites it over the footage.",
+  "target": {
+    "compId": "active",
+    "layerIndex": 1,
+    "layerName": "replace-with-target-layer-name"
+  },
+  "modules": [
+    {
+      "id": "particular-overlay",
+      "title": "Particular overlay carrier",
+      "summary": "Use this structure when a particle effect should appear on top of video without covering the original footage.",
+      "checked": true,
+      "requires": [
+        "Trapcode Particular / tc Particular"
+      ],
+      "actions": [
+        {
+          "type": "addSolidLayer",
+          "ref": "particles",
+          "name": "AEcreate Particular Carrier",
+          "color": [0, 0, 0],
+          "inPoint": 27.85,
+          "outPoint": 32.85,
+          "blendingMode": "ADD"
+        },
+        {
+          "type": "addLightLayer",
+          "ref": "emitter",
+          "name": "AEcreate Particular Emitter",
+          "lightType": "point",
+          "position": [640, 360, -200],
+          "intensity": 80,
+          "inPoint": 27.85,
+          "outPoint": 32.85
+        },
+        {
+          "type": "addEffect",
+          "targetRef": "particles",
+          "matchName": "tc Particular"
+        },
+        {
+          "type": "setLayerProperties",
+          "targetRef": "particles",
+          "blendingMode": "ADD",
+          "inPoint": 27.85,
+          "outPoint": 32.85,
+          "opacity": 100
+        }
+      ]
+    }
+  ]
+}

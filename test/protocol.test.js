@@ -28,6 +28,25 @@ test('validatePendingAction accepts a structured checked module', () => {
   assert.deepEqual(validatePendingAction(action), []);
 });
 
+test('validatePendingAction accepts layer workflow actions', () => {
+  const action = createValidPendingAction({
+    modules: [{
+      id: 'm1',
+      title: 'Particular Overlay',
+      summary: 'Creates a particle carrier above the footage and targets it.',
+      checked: true,
+      actions: [
+        { type: 'addSolidLayer', ref: 'particles', name: 'AEcreate particles', color: [0, 0, 0] },
+        { type: 'addLightLayer', ref: 'emitter', name: 'AEcreate emitter', lightType: 'point', position: [640, 360, -200] },
+        { type: 'addEffect', targetRef: 'particles', matchName: 'tc Particular' },
+        { type: 'setLayerProperties', targetRef: 'particles', blendingMode: 'ADD', inPoint: 27.85, outPoint: 32.85 }
+      ]
+    }]
+  });
+
+  assert.deepEqual(validatePendingAction(action), []);
+});
+
 test('validatePendingAction reports missing module actions', () => {
   const action = {
     schemaVersion: 1,
@@ -91,7 +110,7 @@ test('validatePendingAction reports unsupported action type', () => {
 
   assert.ok(
     validatePendingAction(action).includes(
-      'modules[0].actions[0].type must be one of: addEffect, modifyEffect, applyPreset, setProperty, setKeyframes, setExpression'
+      'modules[0].actions[0].type must be one of: addEffect, modifyEffect, applyPreset, setProperty, setKeyframes, setExpression, addSolidLayer, addLightLayer, addNullLayer, setLayerProperties'
     )
   );
 });

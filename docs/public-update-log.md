@@ -30,7 +30,7 @@ This document is public-facing and safe to push. It records shipped updates, vis
 - Preset library scan: scans AE user presets, installed presets, and user-defined preset paths, then writes `preset-cache.json`.
 - Pending plan view: reads `pending-action.json` and shows Codex-generated modules as a checkable list.
 - Plan history: preserves previous pending plans when refreshing or discarding, and can restore a history item as the current pending plan.
-- Structured executor: supports `addEffect`, `modifyEffect`, `applyPreset`, `setProperty`, `setKeyframes`, and `setExpression`.
+- Structured executor: supports `addEffect`, `modifyEffect`, `applyPreset`, `setProperty`, `setKeyframes`, `setExpression`, layer creation actions, and layer property actions.
 - Safety gates: validates schema, target layer, action type, and `contextFingerprint` before applying, then executes inside an AE undo group.
 - Bilingual panel: supports Chinese and English UI text with saved language preference.
 - Plugin parameter library: scans installed AE effect plugin parameter trees and writes `effect-catalog.json`, `effect-scan-report.json`, and `effect-params/*.json`.
@@ -265,3 +265,24 @@ English:
 - Standard automated verification command: `node --test`.
 - Real AE runtime behavior should still be manually verified with `docs/manual-test-checklist.md`.
 - Scanning all plugins can be slow; use it in a disposable test project when possible.
+### 2026-05-13 - Layer Workflow Actions / 图层工作流动作
+
+Commit: `feat: add layer workflow actions`
+
+中文：
+
+- 扩展 `pending-action.json` 动作协议，新增 `addSolidLayer`、`addLightLayer`、`addNullLayer` 和 `setLayerProperties`。
+- 执行器新增模块级 `ref` / `targetRef` 图层引用表，后续动作可以明确作用到新建图层，而不是只能作用到原始目标素材层。
+- 支持在 AE 中新建粒子承载 Solid、灯光层和 Null 控制层，并设置 in/out、混合模式、透明度等图层属性。
+- 新增 Trapcode Particular 工作流说明，明确粒子叠加类效果应优先创建承载层并用 `ADD` / `SCREEN` 合成，不应默认直接套到原视频层上。
+- 新增 Particular 叠加工作流示例 `examples/pending-actions/particular-overlay-workflow.json`。
+- 新增回归测试，确保 `tc Particular` 会加到新建粒子承载层上，而不是加到原始视频层。
+
+English:
+
+- Extended the `pending-action.json` action protocol with `addSolidLayer`, `addLightLayer`, `addNullLayer`, and `setLayerProperties`.
+- Added a per-module `ref` / `targetRef` layer registry so later actions can target newly created layers instead of only the original selected footage layer.
+- Added AE execution support for particle carrier solids, light layers, null control layers, layer timing, blend mode, and opacity settings.
+- Added Trapcode Particular workflow notes that document the correct carrier-layer compositing workflow for overlay particles.
+- Added `examples/pending-actions/particular-overlay-workflow.json`.
+- Added regression coverage proving `tc Particular` is applied to the new particle carrier layer, not the original footage layer.

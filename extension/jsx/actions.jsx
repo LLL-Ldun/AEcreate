@@ -133,7 +133,11 @@ AECreateActions.allowedActionTypes = [
   'applyPreset',
   'setProperty',
   'setKeyframes',
-  'setExpression'
+  'setExpression',
+  'addSolidLayer',
+  'addLightLayer',
+  'addNullLayer',
+  'setLayerProperties'
 ];
 
 AECreateActions.isNonEmptyString = function (value) {
@@ -327,7 +331,7 @@ AECreateBridge.applyCheckedModules = function (payloadText) {
     undoOpen = true;
     for (var m = 0; m < pending.modules.length; m++) {
       if (!AECreateActions.moduleIsChecked(pending.modules[m], checkedMap, m)) continue;
-      AECreateActions.applyModule(layer, pending.modules[m], m);
+      AECreateActions.applyModule(layer, pending.modules[m], m, AECreateActions.createModuleContext(comp, layer));
       applied.push(pending.modules[m].title || ('Module ' + (m + 1)));
     }
     app.endUndoGroup();
@@ -370,19 +374,205 @@ AECreateActions.requirePropertyPath = function (action) {
   if (!(action.propertyPath instanceof Array) || action.propertyPath.length === 0) AECreateBridge.fail('propertyPath must be a non-empty array.');
 };
 
-AECreateActions.applyModule = function (layer, module, moduleIndex) {
+AECreateActions.createModuleContext = function (comp, targetLayer) {
+  return {
+    comp: comp || AECreateActions.activeComp(),
+    targetLayer: targetLayer,
+    layersByRef: {}
+  };
+};
+
+AECreateActions.ensureModuleContext = function (layer, moduleContext) {
+  if (moduleContext && typeof moduleContext === 'object') {
+    if (!moduleContext.targetLayer) moduleContext.targetLayer = layer;
+    if (!moduleContext.comp) moduleContext.comp = AECreateActions.activeComp();
+    if (!moduleContext.layersByRef) moduleContext.layersByRef = {};
+    return moduleContext;
+  }
+  if (layer && typeof layer === 'object' && layer.targetLayer && layer.layersByRef) {
+    return AECreateActions.ensureModuleContext(layer.targetLayer, layer);
+  }
+  return AECreateActions.createModuleContext(AECreateActions.activeComp(), layer);
+};
+
+AECreateActions.rememberLayerRef = function (context, action, layer) {
+  if (!context.layersByRef) context.layersByRef = {};
+  if (AECreateActions.isNonEmptyString(action.ref)) context.layersByRef[action.ref] = layer;
+};
+
+AECreateActions.resolveActionLayer = function (context, action) {
+  var ref = action.targetRef || action.layerRef;
+  if (AECreateActions.isNonEmptyString(ref)) {
+    if (!context.layersByRef || !context.layersByRef[ref]) AECreateBridge.fail('Layer ref not found: ' + ref);
+    return context.layersByRef[ref];
+  }
+  if (!context.targetLayer) AECreateBridge.fail('No target layer available for action.');
+  return context.targetLayer;
+};
+
+AECreateActions.numberOrDefault = function (value, fallback) {
+  return typeof value === 'number' && isFinite(value) ? value : fallback;
+};
+
+AECreateActions.blendingModeValue = function (name) {
+  if (!AECreateActions.isNonEmptyString(name)) return null;
+  var normalized = String(name).toUpperCase().replace(/[\s-]+/g, '_');
+  var aliases = {
+    ADD: 'ADD',
+    SCREEN: 'SCREEN',
+    NORMAL: 'NORMAL',
+    MULTIPLY: 'MULTIPLY',
+    OVERLAY: 'OVERLAY',
+    SOFT_LIGHT: 'SOFT_LIGHT',
+    HARD_LIGHT: 'HARD_LIGHT',
+    LINEAR_DODGE: 'LINEAR_DODGE',
+    COLOR_DODGE: 'COLOR_DODGE',
+    LIGHTEN: 'LIGHTEN',
+    DARKEN: 'DARKEN'
+  };
+  var key = aliases[normalized] || normalized;
+  if (typeof BlendingMode !== 'undefined' && BlendingMode[key] !== undefined) return BlendingMode[key];
+  return null;
+};
+
+AECreateActions.lightTypeValue = function (name) {
+  if (!AECreateActions.isNonEmptyString(name)) return null;
+  var key = String(name).toUpperCase().replace(/[\s-]+/g, '_');
+  if (key === 'POINT_LIGHT') key = 'POINT';
+  if (key === 'SPOT_LIGHT') key = 'SPOT';
+  if (key === 'PARALLEL_LIGHT') key = 'PARALLEL';
+  if (key === 'AMBIENT_LIGHT') key = 'AMBIENT';
+  if (typeof LightType !== 'undefined' && LightType[key] !== undefined) return LightType[key];
+  return null;
+};
+
+AECreateActions.applyLayerTiming = function (layer, action, comp) {
+  if (typeof action.startTime === 'number' && isFinite(action.startTime)) layer.startTime = action.startTime;
+  if (typeof action.inPoint === 'number' && isFinite(action.inPoint)) layer.inPoint = action.inPoint;
+  if (typeof action.outPoint === 'number' && isFinite(action.outPoint)) {
+    layer.outPoint = action.outPoint;
+  } else if (typeof action.duration === 'number' && isFinite(action.duration)) {
+    var base = typeof layer.inPoint === 'number' ? layer.inPoint : 0;
+    var outPoint = base + action.duration;
+    if (comp && typeof comp.duration === 'number' && outPoint > comp.duration) outPoint = comp.duration;
+    layer.outPoint = outPoint;
+  }
+  if (typeof action.enabled === 'boolean') layer.enabled = action.enabled;
+};
+
+AECreateActions.setNativeLayerProperty = function (layer, groupName, propertyName, value) {
+  var group = layer.property(groupName);
+  if (!group) return false;
+  var prop = group.property(propertyName);
+  if (!prop || !prop.setValue) return false;
+  prop.setValue(value);
+  return true;
+};
+
+AECreateActions.applyLayerComposite = function (layer, action) {
+  if (AECreateActions.isNonEmptyString(action.blendingMode)) {
+    var mode = AECreateActions.blendingModeValue(action.blendingMode);
+    if (mode === null) AECreateBridge.fail('Unsupported blendingMode: ' + action.blendingMode);
+    layer.blendingMode = mode;
+  }
+  if (typeof action.opacity === 'number' && isFinite(action.opacity)) {
+    AECreateActions.setNativeLayerProperty(layer, 'ADBE Transform Group', 'ADBE Opacity', action.opacity);
+  }
+};
+
+AECreateActions.applyLayerPlacement = function (context, layer, action) {
+  if (action.moveBeforeTarget !== false && context.targetLayer && layer.moveBefore) {
+    layer.moveBefore(context.targetLayer);
+  }
+};
+
+AECreateActions.addSolidLayer = function (context, action) {
+  var comp = context.comp || AECreateActions.activeComp();
+  if (!comp || !comp.layers || !comp.layers.addSolid) AECreateBridge.fail('No active composition available for addSolidLayer.');
+  var color = action.color instanceof Array ? action.color : [0, 0, 0];
+  var name = action.name || action.ref || 'AEcreate Solid';
+  var width = AECreateActions.numberOrDefault(action.width, comp.width);
+  var height = AECreateActions.numberOrDefault(action.height, comp.height);
+  var pixelAspect = AECreateActions.numberOrDefault(action.pixelAspect, comp.pixelAspect || 1);
+  var duration = AECreateActions.numberOrDefault(action.duration, comp.duration);
+  var layer = comp.layers.addSolid(color, name, width, height, pixelAspect, duration);
+  AECreateActions.applyLayerTiming(layer, action, comp);
+  AECreateActions.applyLayerComposite(layer, action);
+  AECreateActions.applyLayerPlacement(context, layer, action);
+  AECreateActions.rememberLayerRef(context, action, layer);
+  return layer;
+};
+
+AECreateActions.addNullLayer = function (context, action) {
+  var comp = context.comp || AECreateActions.activeComp();
+  if (!comp || !comp.layers || !comp.layers.addNull) AECreateBridge.fail('No active composition available for addNullLayer.');
+  var duration = AECreateActions.numberOrDefault(action.duration, comp.duration);
+  var layer = comp.layers.addNull(duration);
+  if (action.name) layer.name = action.name;
+  AECreateActions.applyLayerTiming(layer, action, comp);
+  AECreateActions.applyLayerPlacement(context, layer, action);
+  AECreateActions.rememberLayerRef(context, action, layer);
+  return layer;
+};
+
+AECreateActions.addLightLayer = function (context, action) {
+  var comp = context.comp || AECreateActions.activeComp();
+  if (!comp || !comp.layers || !comp.layers.addLight) AECreateBridge.fail('No active composition available for addLightLayer.');
+  var position = action.position instanceof Array ? action.position : [comp.width / 2, comp.height / 2, -500];
+  var name = action.name || action.ref || 'AEcreate Light';
+  var layer = comp.layers.addLight(name, [position[0], position[1]]);
+  var lightType = AECreateActions.lightTypeValue(action.lightType || 'point');
+  if (lightType !== null) layer.lightType = lightType;
+  AECreateActions.applyLayerTiming(layer, action, comp);
+  if (position.length > 2) AECreateActions.setNativeLayerProperty(layer, 'ADBE Transform Group', 'ADBE Position', position);
+  if (typeof action.intensity === 'number' && isFinite(action.intensity)) {
+    AECreateActions.setNativeLayerProperty(layer, 'ADBE Light Options Group', 'ADBE Light Intensity', action.intensity);
+  }
+  if (action.color instanceof Array) {
+    AECreateActions.setNativeLayerProperty(layer, 'ADBE Light Options Group', 'ADBE Light Color', action.color);
+  }
+  AECreateActions.rememberLayerRef(context, action, layer);
+  return layer;
+};
+
+AECreateActions.setLayerProperties = function (context, action) {
+  var layer = AECreateActions.resolveActionLayer(context, action);
+  AECreateActions.applyLayerTiming(layer, action, context.comp);
+  AECreateActions.applyLayerComposite(layer, action);
+};
+
+AECreateActions.applyModule = function (layer, module, moduleIndex, moduleContext) {
+  var context = AECreateActions.ensureModuleContext(layer, moduleContext);
   if (!module || !(module.actions instanceof Array)) AECreateBridge.fail('module ' + (module && module.title ? module.title : ('Module ' + (moduleIndex + 1))) + ' actions must be an array.');
   for (var i = 0; i < module.actions.length; i++) {
     try {
-      AECreateActions.applyAction(layer, module.actions[i]);
+      AECreateActions.applyAction(context, module.actions[i]);
     } catch (error) {
       throw new Error(AECreateActions.actionContext(module, moduleIndex, i) + ': ' + String(error));
     }
   }
 };
 
-AECreateActions.applyAction = function (layer, action) {
+AECreateActions.applyAction = function (contextOrLayer, action) {
+  var context = AECreateActions.ensureModuleContext(contextOrLayer, null);
   if (!action || !action.type) AECreateBridge.fail('Action type is required.');
+  if (action.type === 'addSolidLayer') {
+    AECreateActions.addSolidLayer(context, action);
+    return;
+  }
+  if (action.type === 'addLightLayer') {
+    AECreateActions.addLightLayer(context, action);
+    return;
+  }
+  if (action.type === 'addNullLayer') {
+    AECreateActions.addNullLayer(context, action);
+    return;
+  }
+  if (action.type === 'setLayerProperties') {
+    AECreateActions.setLayerProperties(context, action);
+    return;
+  }
+  var layer = AECreateActions.resolveActionLayer(context, action);
   if (action.type === 'addEffect') {
     AECreateActions.addEffect(layer, action);
     return;

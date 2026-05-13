@@ -47,6 +47,12 @@ AEcreate currently supports these structured action types:
 - `setProperty`
 - `setKeyframes`
 - `setExpression`
+- `addSolidLayer`
+- `addLightLayer`
+- `addNullLayer`
+- `setLayerProperties`
+
+Layer workflow actions can create carrier/control layers and then target later effect actions with `targetRef`. This is important for plugins such as Trapcode Particular, where particles should usually live on a composited solid above the footage instead of being applied directly to the original video layer.
 
 ## Install For Development
 
@@ -76,6 +82,7 @@ node --test
 
 - Public update log: `docs/public-update-log.md`
 - Manual AE test checklist: `docs/manual-test-checklist.md`
+- Trapcode Particular workflow notes: `docs/plugin-workflows/trapcode-particular.md`
 - Design spec: `docs/superpowers/specs/2026-05-12-ae-codex-effect-bridge-design.md`
 - Implementation plan: `docs/superpowers/plans/2026-05-12-ae-codex-effect-bridge-implementation.md`
 

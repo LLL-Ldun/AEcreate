@@ -74,3 +74,159 @@ test('applyCheckedModules does not depend on AECreateContext being in scope', ()
   assert.equal(result.ok, true, result.error);
   assert.equal(result.message, 'Applied modules: Glow');
 });
+
+test('applyModule can target effects at a newly created particle layer', () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', 'extension', 'jsx', 'actions.jsx'), 'utf8');
+
+  class CompItem {}
+  const context = vm.createContext({
+    AECreateBridge: {
+      respond(object) {
+        return JSON.stringify(object);
+      },
+      fail(message) {
+        throw new Error(message);
+      }
+    },
+    app: {
+      project: { activeItem: null }
+    },
+    CompItem,
+    BlendingMode: { ADD: 'ADD', SCREEN: 'SCREEN', NORMAL: 'NORMAL' },
+    LightType: { POINT: 'POINT', SPOT: 'SPOT' },
+    Error,
+    String,
+    isFinite,
+    Math
+  });
+  context.AECreateJSON = vm.runInContext('JSON', context);
+
+  vm.runInContext(source, context, { filename: 'actions.jsx' });
+  const result = vm.runInContext(`
+    (function () {
+      var calls = [];
+      var targetEffects = {
+        numProperties: 0,
+        addProperty: function (name) {
+          calls.push({ type: 'targetEffect', name: name });
+          return { name: name, matchName: name };
+        }
+      };
+      var targetLayer = {
+        name: 'canju.mp4',
+        property: function (name) {
+          if (name === 'ADBE Effect Parade') return targetEffects;
+          return null;
+        }
+      };
+
+      var solidEffects = {
+        added: [],
+        numProperties: 0,
+        addProperty: function (name) {
+          this.added.push(name);
+          this.numProperties = this.added.length;
+          calls.push({ type: 'solidEffect', name: name });
+          return { name: name, matchName: name };
+        },
+        property: function () {
+          return null;
+        }
+      };
+      var solidValues = {};
+      var solidLayer = {
+        name: '',
+        property: function (name) {
+          if (name === 'ADBE Effect Parade') return solidEffects;
+          if (name === 'ADBE Transform Group') {
+            return {
+              property: function (child) {
+                return {
+                  setValue: function (value) {
+                    solidValues[child] = value;
+                  }
+                };
+              }
+            };
+          }
+          return null;
+        },
+        moveBefore: function (layer) {
+          calls.push({ type: 'moveBefore', target: layer.name });
+        }
+      };
+      var lightValues = {};
+      function lightProp(name) {
+        return {
+          setValue: function (value) {
+            lightValues[name] = value;
+          }
+        };
+      }
+      var lightLayer = {
+        name: '',
+        property: function (name) {
+          if (name === 'ADBE Transform Group') {
+            return { property: function (child) { return lightProp(child); } };
+          }
+          if (name === 'ADBE Light Options Group') {
+            return { property: function (child) { return lightProp(child); } };
+          }
+          return null;
+        }
+      };
+
+      var comp = new CompItem();
+      comp.width = 1280;
+      comp.height = 720;
+      comp.pixelAspect = 1;
+      comp.duration = 40;
+      comp.layers = {
+        addSolid: function (color, name, width, height, pixelAspect, duration) {
+          calls.push({ type: 'addSolid', color: color, name: name, width: width, height: height, duration: duration });
+          solidLayer.name = name;
+          return solidLayer;
+        },
+        addLight: function (name, position) {
+          calls.push({ type: 'addLight', name: name, position: position });
+          lightLayer.name = name;
+          return lightLayer;
+        }
+      };
+
+      AECreateActions.applyModule(targetLayer, {
+        id: 'm1',
+        title: 'Particular Overlay',
+        summary: 'Create particle layer workflow.',
+        actions: [
+          { type: 'addSolidLayer', ref: 'particles', name: 'AEcreate particles', color: [0, 0, 0], inPoint: 27.85, outPoint: 32.85, blendingMode: 'ADD' },
+          { type: 'addLightLayer', ref: 'emitter', name: 'AEcreate emitter', lightType: 'point', position: [640, 360, -200], intensity: 80 },
+          { type: 'addEffect', targetRef: 'particles', matchName: 'tc Particular' },
+          { type: 'setLayerProperties', targetRef: 'particles', blendingMode: 'SCREEN', opacity: 75 }
+        ]
+      }, 0, { comp: comp, targetLayer: targetLayer, layersByRef: {} });
+
+      return {
+        calls: calls,
+        solidEffects: solidEffects.added,
+        targetEffectCount: targetEffects.numProperties,
+        solidInPoint: solidLayer.inPoint,
+        solidOutPoint: solidLayer.outPoint,
+        solidBlendingMode: solidLayer.blendingMode,
+        solidValues: solidValues,
+        lightType: lightLayer.lightType,
+        lightValues: lightValues
+      };
+    })()
+  `, context);
+
+  assert.deepEqual(Array.from(result.solidEffects), ['tc Particular']);
+  assert.equal(result.targetEffectCount, 0);
+  assert.equal(result.solidInPoint, 27.85);
+  assert.equal(result.solidOutPoint, 32.85);
+  assert.equal(result.solidBlendingMode, 'SCREEN');
+  assert.equal(result.solidValues['ADBE Opacity'], 75);
+  assert.equal(result.lightType, 'POINT');
+  assert.deepEqual(Array.from(result.lightValues['ADBE Position']), [640, 360, -200]);
+  assert.deepEqual(Array.from(result.calls).map((call) => call.type), ['addSolid', 'moveBefore', 'addLight', 'solidEffect']);
+});

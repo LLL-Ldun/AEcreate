@@ -31,6 +31,9 @@
 - [ ] Confirm pending plan target, warnings, requirements, and action counts are visible when provided.
 - [ ] Replace `pending-action.json` with a second plan, click `Refresh Plan`, and confirm the first plan remains visible under Plan History.
 - [ ] Click a Plan History item and confirm it is restored as the current pending plan.
+- [ ] For a layer-workflow apply test, copy `examples/pending-actions/particular-overlay-workflow.json` to `<bridge-folder>/pending-action.json`, then set `target.layerIndex`, `target.layerName`, and `contextFingerprint` to the values shown in `current-context.json`.
+- [ ] Apply the Particular overlay test in a disposable comp and confirm `tc Particular` is added to a new `AEcreate Particular Carrier` solid above the footage, not to the original footage layer.
+- [ ] Confirm the new particle carrier has `ADD` blending mode and the requested in/out range, so the original footage remains visible underneath.
 - [ ] Apply one checked module.
 - [ ] Confirm the effect appears or updates on the selected layer.
 - [ ] Press Ctrl+Z once in AE and confirm the full applied module reverts.
