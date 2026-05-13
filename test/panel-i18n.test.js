@@ -28,6 +28,8 @@ test('panel i18n defaults to Chinese and falls back for unknown language codes',
   assert.equal(i18n.normalizeLanguage('fr'), 'zh');
   assert.equal(i18n.t('zh', 'refreshContext'), '刷新上下文');
   assert.equal(i18n.t('en', 'refreshContext'), 'Refresh Context');
+  assert.equal(i18n.t('zh', 'refreshPending'), '刷新方案');
+  assert.equal(i18n.t('en', 'refreshPending'), 'Refresh Plan');
 });
 
 test('panel i18n applies translated static text to DOM nodes', () => {

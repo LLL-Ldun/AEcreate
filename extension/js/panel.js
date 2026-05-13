@@ -31,6 +31,11 @@
     element.textContent = text(key);
   }
 
+  function formatActionCount(count) {
+    var key = count === 1 ? 'actionCountOne' : 'actionCountMany';
+    return text(key).replace('{count}', String(count));
+  }
+
   function applyLanguage() {
     i18n.apply(document, state.language);
     requireElement('languageSelect').value = state.language;
@@ -52,9 +57,10 @@
       row.className = 'module';
       row.innerHTML =
         '<input type="checkbox" data-index="' + index + '"' + (module.checked !== false ? ' checked' : '') + '>' +
-        '<span><span class="module-title"></span><span class="module-summary"></span></span>';
+        '<span><span class="module-title"></span><span class="module-summary"></span><span class="module-meta"></span></span>';
       row.querySelector('.module-title').textContent = module.title;
       row.querySelector('.module-summary').textContent = module.summary;
+      row.querySelector('.module-meta').textContent = formatActionCount(module.actions ? module.actions.length : 0);
       list.appendChild(row);
     });
   }
@@ -69,7 +75,11 @@
   function loadPending() {
     bridge.call('readPendingAction', {}).then(function (result) {
       if (result.ok) renderPending(result.plan);
-      else setText('pendingSummary', result.error);
+      else {
+        state.pending = null;
+        requireElement('moduleList').innerHTML = '';
+        setText('pendingSummary', result.error);
+      }
     });
   }
 
@@ -89,6 +99,7 @@
   }
 
   requireElement('refreshContext').addEventListener('click', refreshContext);
+  requireElement('refreshPending').addEventListener('click', loadPending);
   requireElement('languageSelect').addEventListener('change', function () {
     state.language = i18n.normalizeLanguage(this.value);
     i18n.saveLanguage(window.localStorage, state.language);

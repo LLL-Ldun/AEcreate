@@ -51,6 +51,18 @@ body {
   margin-bottom: 8px;
 }
 
+.section-heading {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.section-heading .section-title {
+  margin-bottom: 0;
+}
+
 .status,
 .box {
   background: #171717;
@@ -89,6 +101,11 @@ button:hover {
   background: #4d7fc6;
 }
 
+button.compact {
+  padding: 6px 10px;
+  min-width: 76px;
+}
+
 button.full {
   width: 100%;
 }
@@ -110,6 +127,14 @@ button.full {
 }
 
 .module-summary {
+  display: block;
   color: #c8c8c8;
   margin-top: 3px;
+}
+
+.module-meta {
+  display: block;
+  color: #9fb8df;
+  font-size: 11px;
+  margin-top: 5px;
 }
