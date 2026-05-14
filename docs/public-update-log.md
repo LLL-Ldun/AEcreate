@@ -38,6 +38,22 @@ This document is public-facing and safe to push. It records shipped updates, vis
 
 ## Update History / 更新记录
 
+### 2026-05-14 - Minimum-Layer Plugin Workflow Defaults / 插件工作流默认最少图层
+
+Commit: `6066b49`
+
+中文：
+- 插件 workflow 库现在以“最少图层优先”为默认策略，避免为了一个视觉目标自动堆叠多个相似承载层。
+- 粒子/生成器类插件默认推荐 1 个 solid 承载层和 1 个同类效果实例；灯光、Null、额外承载层只作为可选 helper 信息，必须在用户明确需要分层控制或插件确实无法单层表达时才使用。
+- `pluginWorkflowLibrary`、`effect-workflows.json` 和单插件扫描结果会携带 `layerPolicy`，明确 `defaultLayerCount`、`defaultEffectInstancesPerVisualGoal` 和允许拆层的条件。
+- 验证：新增 workflow 回归测试，覆盖粒子、调整层、源层和未知插件的最少图层策略。
+
+English:
+- The plugin workflow library now defaults to a minimum-layer-first policy so one visual goal does not automatically become several similar carrier layers.
+- Particle/generator plugins default to one solid carrier and one same-plugin effect instance; lights, nulls, and extra carriers are optional helpers only when the user explicitly asks for separate control or the plugin cannot express the look in one layer.
+- `pluginWorkflowLibrary`, `effect-workflows.json`, and per-plugin scan output now include `layerPolicy` with `defaultLayerCount`, `defaultEffectInstancesPerVisualGoal`, and split-layer conditions.
+- Verification: added workflow regression tests for particle, adjustment-layer, source-layer, and unknown plugin policies.
+
 ### 2026-05-14 - Faster Parameter Name Enrichment / 参数名解析性能修复
 
 Commit: `75c0f97`
