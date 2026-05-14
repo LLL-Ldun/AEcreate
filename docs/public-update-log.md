@@ -29,7 +29,7 @@ This document is public-facing and safe to push. It records shipped updates, vis
 - Marker anchors: supports quick marker creation and can target either the selected layer or the active comp.
 - Preset library scan: scans AE user presets, installed presets, and user-defined preset paths, then writes `preset-cache.json`.
 - Pending plan view: reads `pending-action.json`, shows Codex-generated modules as a checkable list, and supports reviewing/editing key parameter values before applying.
-- Plan history: preserves previous pending plans when refreshing or discarding, and can restore a history item as the current pending plan.
+- Plan history: preserves previous pending plans when refreshing or discarding; clicking a history item only selects it for review, and deletion is explicit.
 - Structured executor: supports `addEffect`, `modifyEffect`, `applyPreset`, `setProperty`, `setKeyframes`, `setExpression`, layer creation actions, and layer property actions.
 - Safety gates: validates schema, target layer, action type, and `contextFingerprint` before applying, then executes inside an AE undo group.
 - Bilingual panel: supports Chinese and English UI text with saved language preference.
@@ -37,6 +37,36 @@ This document is public-facing and safe to push. It records shipped updates, vis
 - Plugin search suggestions: typing in the Plugin Params field shows installed-effect suggestions similar to AE Effects search, and clicking one fills the scan input.
 
 ## Update History / 更新记录
+
+### 2026-05-14 - Safe Plan History Selection / 历史方案安全选择
+Commit: `fc2a694`
+
+中文：
+- 修复历史方案点击行为：点击右侧历史方案现在只会选中高亮，不会恢复为当前待应用方案，也不会写回 `pending-action.json`。
+- 每个历史方案新增“删除 / Delete”按钮；删除只会移除 `pending-plans.json` 中对应记录，不会影响当前待应用方案。
+- 保留底层 `restorePendingAction` 桥接接口以兼容旧流程，但当前面板不再通过历史项点击调用它，避免误触发过重方案。
+- 验证：新增历史删除与面板交互回归测试；`npm test` 全量 71 项通过。
+
+English:
+- Fixed plan-history click behavior: clicking a history item now only selects/highlights it, without restoring it as the current pending plan or rewriting `pending-action.json`.
+- Added an explicit Delete button for each archived plan; deletion only removes the matching record from `pending-plans.json` and leaves the current pending plan untouched.
+- Kept the underlying `restorePendingAction` bridge API for compatibility, but the current panel no longer calls it from history-item clicks.
+- Verification: added archive deletion and panel interaction regression tests; `npm test`, 71 tests passed.
+
+### 2026-05-14 - GPU-Safe Context Mode / GPU 安全上下文模式
+Commit: `fc487f3`
+
+中文：
+- 新增“GPU 模式”面板设置，默认值为“集显/安全”，另提供“独显/性能”选项。
+- 在“集显/安全”模式下，刷新上下文不会递归读取选中图层的效果属性树，降低触发 AE 插件/GPU 驱动路径的概率。
+- 在“独显/性能”模式下，工具仍可导出完整效果树，适合有独显且运行稳定的环境。
+- 验证：新增设置归一化、上下文导出和面板设置回归测试；`npm test` 全量 70 项通过。
+
+English:
+- Added a GPU Mode setting to the panel, defaulting to Integrated/Safe with an optional Discrete/Performance mode.
+- Integrated/Safe context export skips recursive selected-layer effect property-tree reads to reduce exposure to AE/plugin/GPU-driver paths.
+- Discrete/Performance keeps full effect-tree export for machines with stable discrete-GPU workflows.
+- Verification: added settings normalization, context export, and panel setting regression tests; `npm test`, 70 tests passed.
 
 ### 2026-05-14 - Tutorial-Derived Workflow Library / 教程提炼 workflow 库
 

@@ -8,9 +8,11 @@
 - [ ] Select one layer.
 - [ ] Add a `kill_icon` marker from the panel.
 - [ ] Switch Marker Target between selected layer and current comp, and confirm markers are created in the chosen target.
+- [ ] Confirm GPU Mode defaults to `Integrated/Safe` / `集显/安全`.
 - [ ] Click `Refresh Context`.
 - [ ] Confirm `current-context.json` exists in the bridge folder.
-- [ ] Confirm exported selected layer records include source, transform, markers, and effect property tree fields where AE exposes them.
+- [ ] Confirm exported selected layer records include source, transform, markers, and `effectTreeMode: "skipped-gpu-safe"` in Integrated/Safe mode.
+- [ ] Switch GPU Mode to `Discrete/Performance` only in a disposable stable test project, refresh context, and confirm exported selected layer records can include full effect property tree fields where AE exposes them.
 - [ ] In `Library`, click `Add Preset Path` if your presets live outside the default AE folders.
 - [ ] Click `Scan Presets`.
 - [ ] Confirm the scan result lists the expected preset paths, including `Documents/Adobe/After Effects`.
@@ -36,7 +38,8 @@
 - [ ] Confirm a test plan using `duplicateLayer` can duplicate the selected layer into a referenced matte/source layer, and a later `setProperty` can use `valueLayerRef` to point a plugin layer-control parameter at that duplicate.
 - [ ] Confirm pending plan target, warnings, requirements, and action counts are visible when provided.
 - [ ] Replace `pending-action.json` with a second plan, click `Refresh Plan`, and confirm the first plan remains visible under Plan History.
-- [ ] Click a Plan History item and confirm it is restored as the current pending plan.
+- [ ] Click a Plan History item and confirm it is only selected/highlighted, not restored as the current pending plan.
+- [ ] Click the Plan History item's `Delete` button and confirm it is removed from Plan History without changing the current pending plan.
 - [ ] Apply one checked module.
 - [ ] Confirm the effect appears or updates on the selected layer.
 - [ ] Press Ctrl+Z once in AE and confirm the full applied module reverts.
