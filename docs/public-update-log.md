@@ -40,7 +40,7 @@ This document is public-facing and safe to push. It records shipped updates, vis
 
 ### 2026-05-14 - Visual Workflow Planning For Keyed Edge Particles / 扣色边缘粒子视觉工作流
 
-Commit: pending
+Commit: `901a8c8`
 
 中文：
 - 新增视觉目标 workflow 库，导出到 `current-context.json` 的 `visualWorkflowLibrary`，让 Codex 不只看插件参数，还能读取“视觉目标需要哪些前置步骤”。
