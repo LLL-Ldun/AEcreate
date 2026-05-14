@@ -68,9 +68,66 @@ test('readPendingAction enriches effect property labels from scanned params', ()
   assert.equal(action.parameterName, '粒子/秒');
 });
 
+test('readPendingAction reads each effect param scan once while enriching many actions', () => {
+  const plan = createPlan('Many Particular Params');
+  plan.modules[0].actions = [
+    {
+      type: 'setProperty',
+      effectMatchName: 'tc Particular',
+      propertyPath: ['tc Particular-0146'],
+      value: 100
+    },
+    {
+      type: 'setProperty',
+      effectMatchName: 'tc Particular',
+      propertyPath: ['tc Particular-0581'],
+      value: [1280, 720, 0]
+    },
+    {
+      type: 'setKeyframes',
+      effectMatchName: 'tc Particular',
+      propertyPath: ['tc Particular-0146'],
+      keys: [{ time: 1, value: 100 }, { time: 2, value: 200 }]
+    }
+  ];
+  const context = loadActionsWithFiles({
+    'C:/bridge/pending-action.json': JSON.stringify(plan),
+    'C:/bridge/effect-params/tc-Particular.json': JSON.stringify({
+      effect: { name: 'Trapcode Particular', matchName: 'tc Particular' },
+      params: [
+        { name: '粒子/秒', matchName: 'tc Particular-0146', path: ['粒子/秒'], matchPath: ['tc Particular-0146'] },
+        { name: '位置', matchName: 'tc Particular-0581', path: ['位置'], matchPath: ['tc Particular-0581'] }
+      ]
+    })
+  });
+
+  const result = JSON.parse(context.AECreateBridge.readPendingAction());
+
+  assert.equal(result.ok, true, result.error);
+  assert.deepEqual(result.plan.modules[0].actions[0].propertyPathDisplay, ['粒子/秒']);
+  assert.deepEqual(result.plan.modules[0].actions[1].propertyPathDisplay, ['位置']);
+  assert.equal(context.readCounts['C:/bridge/effect-params/tc-Particular.json'], 1);
+});
+
+test('readPendingAction does not read effect param scans when no action needs labels', () => {
+  const context = loadActionsWithFiles({
+    'C:/bridge/pending-action.json': JSON.stringify(createPlan('Plain Plan')),
+    'C:/bridge/effect-params/tc-Particular.json': JSON.stringify({
+      effect: { name: 'Trapcode Particular', matchName: 'tc Particular' },
+      params: [{ name: 'Particles/sec', matchName: 'tc Particular-0146', path: ['Particles/sec'], matchPath: ['tc Particular-0146'] }]
+    })
+  });
+
+  const result = JSON.parse(context.AECreateBridge.readPendingAction());
+
+  assert.equal(result.ok, true, result.error);
+  assert.equal(context.readCounts['C:/bridge/effect-params/tc-Particular.json'], undefined);
+});
+
 function loadActionsWithFiles(initialFiles) {
   const source = fs.readFileSync(path.join(__dirname, '..', 'extension', 'jsx', 'actions.jsx'), 'utf8');
   const files = { ...initialFiles };
+  const readCounts = {};
 
   function Folder(fsName) {
     this.fsName = fsName.replace(/\\/g, '/');
@@ -102,6 +159,7 @@ function loadActionsWithFiles(initialFiles) {
         return new Folder('C:/bridge');
       },
       readText(file) {
+        readCounts[file.fsName] = (readCounts[file.fsName] || 0) + 1;
         return files[file.fsName] || null;
       },
       writeText(file, text) {
@@ -123,11 +181,13 @@ function loadActionsWithFiles(initialFiles) {
     Date,
     isFinite,
     Math,
-    files
+    files,
+    readCounts
   });
   context.AECreateJSON = vm.runInContext('JSON', context);
   vm.runInContext(source, context, { filename: 'actions.jsx' });
   context.files = files;
+  context.readCounts = readCounts;
   return context;
 }
 

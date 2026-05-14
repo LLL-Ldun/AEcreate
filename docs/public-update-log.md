@@ -38,6 +38,22 @@ This document is public-facing and safe to push. It records shipped updates, vis
 
 ## Update History / 更新记录
 
+### 2026-05-14 - Faster Parameter Name Enrichment / 参数名解析性能修复
+
+Commit: `03d17e6`
+
+中文：
+- 修复刷新待应用方案时可能导致 AE 不响应的性能问题；根因是待应用方案里有大量参数动作时，`readPendingAction` 会为每个动作重复读取并解析 `effect-params/*.json`。
+- 参数名补全现在会在单次刷新中建立内存查找表，每个扫描文件最多读取一次，再复用给所有动作。
+- 如果方案中没有需要补真实参数名的 `effectMatchName + propertyPath` 动作，或动作已经带有显示路径，则不会读取插件参数扫描库。
+- 验证：`node --test`，53 项测试全部通过；已通过 `scripts/install-dev.ps1` 部署到本机 CEP 扩展目录。
+
+English:
+- Fixed a performance issue where refreshing a pending plan could make AE appear unresponsive; the root cause was repeated reads/parses of `effect-params/*.json` for every parameter action.
+- Parameter-name enrichment now builds an in-memory lookup once per refresh, reads each scan file at most once, and reuses it across all actions.
+- Plans without `effectMatchName + propertyPath` actions, or actions that already include display paths, no longer read the plugin parameter scan library.
+- Verification: `node --test`, 53 tests passed; deployed locally with `scripts/install-dev.ps1`.
+
 ### 2026-05-14 - Real Parameter Names in Pending Preview / 待应用预览显示真实参数名
 
 Commit: `167ec78`

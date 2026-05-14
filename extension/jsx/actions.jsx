@@ -41,38 +41,86 @@ AECreateActions.samePath = function (left, right) {
   return true;
 };
 
-AECreateActions.findScannedParamRecord = function (records, propertyPath) {
-  if (!(records instanceof Array) || !(propertyPath instanceof Array)) return null;
-  for (var i = 0; i < records.length; i++) {
-    var record = records[i];
-    if (!record || typeof record !== 'object') continue;
-    if (AECreateActions.samePath(record.matchPath, propertyPath) || AECreateActions.samePath(record.path, propertyPath)) return record;
-    if (propertyPath.length === 1 && record.matchName === propertyPath[0]) return record;
-    var child = AECreateActions.findScannedParamRecord(record.children, propertyPath);
-    if (child) return child;
-  }
-  return null;
+AECreateActions.pathKey = function (path) {
+  if (!(path instanceof Array)) return '';
+  var parts = [];
+  for (var i = 0; i < path.length; i++) parts.push(String(path[i]));
+  return parts.join('\u001f');
 };
 
-AECreateActions.lookupScannedParam = function (effectName, propertyPath) {
+AECreateActions.effectKey = function (name) {
+  return String(name || '').toLowerCase();
+};
+
+AECreateActions.indexScannedParamRecord = function (index, record) {
+  if (!record || typeof record !== 'object') return;
+  if (record.matchPath instanceof Array) index.records[AECreateActions.pathKey(record.matchPath)] = record;
+  if (record.path instanceof Array) index.records[AECreateActions.pathKey(record.path)] = record;
+  if (AECreateActions.isNonEmptyString(record.matchName)) index.records[AECreateActions.pathKey([record.matchName])] = record;
+  if (record.children instanceof Array) {
+    for (var i = 0; i < record.children.length; i++) AECreateActions.indexScannedParamRecord(index, record.children[i]);
+  }
+};
+
+AECreateActions.registerEffectScanIndex = function (lookup, scan, index) {
+  if (!scan || !scan.effect) return;
+  var names = [scan.effect.name, scan.effect.matchName];
+  for (var i = 0; i < names.length; i++) {
+    if (AECreateActions.isNonEmptyString(names[i])) lookup.effects[AECreateActions.effectKey(names[i])] = index;
+  }
+};
+
+AECreateActions.createEffectParamLookup = function () {
+  var lookup = { effects: {} };
   var folder = AECreateActions.effectParamsFolder();
-  if (!folder.exists || !folder.getFiles) return null;
+  if (!folder.exists || !folder.getFiles) return lookup;
   var files = folder.getFiles('*.json');
   for (var i = 0; i < files.length; i++) {
     try {
       var scan = AECreateJSON.parse(AECreateBridge.readText(files[i]));
-      if (!scan || !AECreateActions.effectScanMatches(scan.effect, effectName)) continue;
-      var record = AECreateActions.findScannedParamRecord(scan.params, propertyPath);
-      if (record) return { scan: scan, record: record };
+      if (!scan || !scan.effect) continue;
+      var index = { scan: scan, records: {} };
+      if (scan.params instanceof Array) {
+        for (var p = 0; p < scan.params.length; p++) AECreateActions.indexScannedParamRecord(index, scan.params[p]);
+      }
+      AECreateActions.registerEffectScanIndex(lookup, scan, index);
     } catch (scanError) {}
   }
-  return null;
+  return lookup;
 };
 
-AECreateActions.enrichActionDisplayNames = function (action) {
-  if (!action || typeof action !== 'object' || !(action.propertyPath instanceof Array) || !AECreateActions.isNonEmptyString(action.effectMatchName)) return;
-  if (action.propertyPathDisplay instanceof Array && action.propertyPathDisplay.length) return;
-  var found = AECreateActions.lookupScannedParam(action.effectMatchName, action.propertyPath);
+AECreateActions.lookupScannedParam = function (effectName, propertyPath, lookup) {
+  if (!(propertyPath instanceof Array)) return null;
+  var activeLookup = lookup || AECreateActions.createEffectParamLookup();
+  var index = activeLookup.effects[AECreateActions.effectKey(effectName)];
+  if (!index) return null;
+  var record = index.records[AECreateActions.pathKey(propertyPath)];
+  return record ? { scan: index.scan, record: record } : null;
+};
+
+AECreateActions.actionNeedsParamLookup = function (action) {
+  return action &&
+    typeof action === 'object' &&
+    action.propertyPath instanceof Array &&
+    AECreateActions.isNonEmptyString(action.effectMatchName) &&
+    !(action.propertyPathDisplay instanceof Array && action.propertyPathDisplay.length);
+};
+
+AECreateActions.planNeedsParamLookup = function (plan) {
+  if (!plan || !(plan.modules instanceof Array)) return false;
+  for (var m = 0; m < plan.modules.length; m++) {
+    var module = plan.modules[m];
+    if (!module || !(module.actions instanceof Array)) continue;
+    for (var a = 0; a < module.actions.length; a++) {
+      if (AECreateActions.actionNeedsParamLookup(module.actions[a])) return true;
+    }
+  }
+  return false;
+};
+
+AECreateActions.enrichActionDisplayNames = function (action, lookup) {
+  if (!AECreateActions.actionNeedsParamLookup(action)) return;
+  var found = AECreateActions.lookupScannedParam(action.effectMatchName, action.propertyPath, lookup);
   if (!found || !found.record) return;
   if (found.scan && found.scan.effect && AECreateActions.isNonEmptyString(found.scan.effect.name)) action.effectDisplayName = found.scan.effect.name;
   if (found.record.path instanceof Array && found.record.path.length) {
@@ -87,11 +135,12 @@ AECreateActions.enrichActionDisplayNames = function (action) {
 
 AECreateActions.enrichPendingPlanDisplayNames = function (plan) {
   if (!plan || !(plan.modules instanceof Array)) return plan;
+  var lookup = AECreateActions.planNeedsParamLookup(plan) ? AECreateActions.createEffectParamLookup() : null;
   for (var m = 0; m < plan.modules.length; m++) {
     var module = plan.modules[m];
     if (!module || !(module.actions instanceof Array)) continue;
     for (var a = 0; a < module.actions.length; a++) {
-      AECreateActions.enrichActionDisplayNames(module.actions[a]);
+      AECreateActions.enrichActionDisplayNames(module.actions[a], lookup);
     }
   }
   return plan;
