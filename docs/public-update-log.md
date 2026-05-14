@@ -40,7 +40,7 @@ This document is public-facing and safe to push. It records shipped updates, vis
 
 ### 2026-05-14 - Reusable Pending Plans / 可重复应用方案
 
-Commit: `pending`
+Commit: `7b62eb9`
 
 中文：
 - 待应用方案现在可以重复应用；第一次应用后 AE 工程新增图层导致 `contextFingerprint` 变化时，不再直接拒绝执行。
