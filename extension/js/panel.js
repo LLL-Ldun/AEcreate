@@ -41,12 +41,42 @@
   }
 
   function localizedValue(value, fallback) {
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
-      return value[state.language] || value.en || value.zh || fallback || '';
+    function looksQuestionMarkCorrupted(textValue) {
+      if (typeof textValue !== 'string') return false;
+      if (textValue.indexOf('????') !== -1) return true;
+      var compact = textValue.replace(/\s+/g, '');
+      if (compact.length < 6) return false;
+      var questionCount = 0;
+      for (var i = 0; i < compact.length; i++) {
+        if (compact.charAt(i) === '?') questionCount++;
+      }
+      return questionCount >= 3 && questionCount / compact.length >= 0.3;
     }
-    if (Array.isArray(value)) return value;
-    if (value === undefined || value === null || value === '') return fallback || '';
-    return value;
+
+    function cleanLocalizedCandidate(candidate) {
+      if (candidate === undefined || candidate === null || candidate === '') return null;
+      if (typeof candidate === 'string') return looksQuestionMarkCorrupted(candidate) ? null : candidate;
+      if (Array.isArray(candidate)) {
+        var clean = candidate.filter(function (item) {
+          return !(typeof item === 'string' && looksQuestionMarkCorrupted(item));
+        });
+        return clean.length ? clean : null;
+      }
+      return candidate;
+    }
+
+    function firstClean(candidates) {
+      for (var i = 0; i < candidates.length; i++) {
+        var clean = cleanLocalizedCandidate(candidates[i]);
+        if (clean !== null) return clean;
+      }
+      return '';
+    }
+
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      return firstClean([value[state.language], fallback, value.en, value.zh]);
+    }
+    return firstClean([value, fallback]);
   }
 
   function localizedField(source, fieldName, fallback) {
