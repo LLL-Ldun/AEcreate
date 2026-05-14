@@ -40,7 +40,7 @@ This document is public-facing and safe to push. It records shipped updates, vis
 
 ### 2026-05-14 - Real Parameter Names in Pending Preview / 待应用预览显示真实参数名
 
-Commit: `pending`
+Commit: `167ec78`
 
 中文：
 - 待应用方案参数预览现在优先显示 AE/插件 UI 中的真实参数名，而不是让用户根据 `tc Particular-0146`、`keys[1].value` 等内部字段猜含义。
