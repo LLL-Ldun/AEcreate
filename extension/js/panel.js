@@ -513,6 +513,18 @@
       meta.className = 'archive-meta';
       meta.textContent = formatActionCount(record.actionCount || 0);
 
+      var actions = document.createElement('div');
+      actions.className = 'archive-actions';
+
+      var restoreButton = document.createElement('button');
+      restoreButton.className = 'archive-restore';
+      restoreButton.setAttribute('type', 'button');
+      restoreButton.textContent = text('restoreArchive');
+      restoreButton.addEventListener('click', function (event) {
+        if (event && event.stopPropagation) event.stopPropagation();
+        restorePendingArchive(record.id);
+      });
+
       var deleteButton = document.createElement('button');
       deleteButton.className = 'archive-delete';
       deleteButton.setAttribute('type', 'button');
@@ -525,7 +537,9 @@
       item.appendChild(title);
       item.appendChild(summary);
       item.appendChild(meta);
-      item.appendChild(deleteButton);
+      actions.appendChild(restoreButton);
+      actions.appendChild(deleteButton);
+      item.appendChild(actions);
       item.addEventListener('click', function () {
         selectPendingArchive(record.id);
       });
@@ -585,6 +599,18 @@
   function selectPendingArchive(id) {
     state.selectedArchiveId = id;
     updateArchiveSelectionClasses();
+  }
+
+  function restorePendingArchive(id) {
+    bridge.call('restorePendingAction', { id: id }).then(function (result) {
+      if (result.ok) {
+        state.selectedArchiveId = null;
+        renderPending(result.plan);
+        renderPendingArchive(result.archive, result.currentArchiveId);
+      } else {
+        setText('pendingSummary', result.error);
+      }
+    });
   }
 
   function deletePendingArchive(id) {

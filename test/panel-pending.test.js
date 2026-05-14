@@ -110,6 +110,88 @@ test('panel renders pending modules as list rows with action counts', async () =
   assert.equal(deleteCall.payload.id, 'old-id');
 });
 
+test('panel restores a selected history plan only from the explicit restore button', async () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', 'extension', 'js', 'panel.js'), 'utf8');
+  const elements = createPanelElements();
+  const calls = [];
+
+  function BridgeClient() {}
+  BridgeClient.prototype.call = function call(name, payload) {
+    calls.push({ name, payload });
+    if (name === 'readPendingAction') {
+      return Promise.resolve({
+        ok: true,
+        plan: {
+          archiveId: 'current-id',
+          title: 'Current Plan',
+          summary: 'Current summary.',
+          target: { layerIndex: 1, layerName: 'Clip' },
+          modules: [{ id: 'm1', title: 'Current Module', summary: 'Current module.', actions: [{ type: 'addEffect' }] }]
+        },
+        archive: {
+          plans: [{
+            id: 'old-id',
+            savedAt: '2026-05-13T13:35:00+08:00',
+            actionCount: 1,
+            plan: {
+              title: 'Old Particle Plan',
+              summary: 'Restore this only from the restore button.',
+              modules: [{ id: 'old-m1', title: 'Old Module', summary: 'Old module.', actions: [{ type: 'applyPreset' }] }]
+            }
+          }]
+        },
+        currentArchiveId: 'current-id'
+      });
+    }
+    if (name === 'restorePendingAction') {
+      return Promise.resolve({
+        ok: true,
+        plan: {
+          title: 'Old Particle Plan',
+          summary: 'Restore this only from the restore button.',
+          modules: [{ id: 'old-m1', title: 'Old Module', summary: 'Old module.', actions: [{ type: 'applyPreset' }] }]
+        },
+        archive: { plans: [] },
+        currentArchiveId: 'old-id'
+      });
+    }
+    if (name === 'getSettings') return Promise.resolve({ ok: true, settings: { presetPaths: [] } });
+    return Promise.resolve({ ok: true });
+  };
+
+  const context = {
+    window: {
+      AECreateBridgeClient: BridgeClient,
+      AECreatePanelI18n: createI18n(),
+      localStorage: createStorage()
+    },
+    document: createDocument(elements),
+    Promise,
+    Number,
+    Array,
+    String,
+    prompt() {
+      return null;
+    }
+  };
+
+  vm.runInNewContext(source, context, { filename: 'panel.js' });
+  await Promise.resolve();
+  await Promise.resolve();
+
+  const archiveItem = elements.pendingArchiveList.children[0];
+  archiveItem.listeners.click();
+  await Promise.resolve();
+  assert.equal(calls.some((call) => call.name === 'restorePendingAction'), false);
+
+  archiveItem.querySelector('.archive-restore').listeners.click({ stopPropagation() {} });
+  await Promise.resolve();
+
+  const restoreCall = calls.find((call) => call.name === 'restorePendingAction');
+  assert.equal(restoreCall.payload.id, 'old-id');
+  assert.match(elements.pendingSummary.textContent, /Old Particle Plan/);
+});
+
 test('panel localizes pending and archived plan text from the selected language', async () => {
   const source = fs.readFileSync(path.join(__dirname, '..', 'extension', 'js', 'panel.js'), 'utf8');
   const elements = createPanelElements();
@@ -790,6 +872,8 @@ function createI18n(initialLanguage = 'en') {
           actionCountOne: '{count} 个动作',
           actionCountMany: '{count} 个动作',
           noPendingArchive: '暂无历史方案。',
+          restoreArchive: '恢复',
+          deleteArchive: '删除',
           pendingTargetLabel: '目标',
           pendingWarningLabel: '警告',
           pendingRequiresLabel: '依赖',
@@ -817,6 +901,8 @@ function createI18n(initialLanguage = 'en') {
           actionCountOne: '1 action',
           actionCountMany: '{count} actions',
           noPendingArchive: 'No plan history.',
+          restoreArchive: 'Restore',
+          deleteArchive: 'Delete',
           pendingTargetLabel: 'Target',
           pendingWarningLabel: 'Warning',
           pendingRequiresLabel: 'Requires',

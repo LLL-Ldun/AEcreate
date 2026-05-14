@@ -241,10 +241,23 @@ button.full {
   font-size: 11px;
 }
 
+.archive-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.archive-restore,
 .archive-delete {
   justify-self: start;
   margin-top: 4px;
   padding: 4px 8px;
+}
+
+.archive-restore {
+  background: #3d6fb6;
+}
+
+.archive-delete {
   background: #6f3d4b;
 }
 
