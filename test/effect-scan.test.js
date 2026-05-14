@@ -195,7 +195,7 @@ test('plugin file candidate scoring matches effect identity tokens', () => {
   assert.ok(score > 0);
 });
 
-test('pluginWorkflow recommends carrier and helper layers for particle effects', () => {
+test('pluginWorkflow prefers the minimum layer count for particle effects', () => {
   const helpers = loadContextHelpers();
 
   const workflow = helpers.pluginWorkflow({
@@ -206,10 +206,30 @@ test('pluginWorkflow recommends carrier and helper layers for particle effects',
 
   assert.equal(workflow.layerStrategy, 'solidCarrier');
   assert.equal(workflow.carrierLayer.type, 'solid');
+  assert.equal(workflow.layerPolicy.priority, 'minimum-layers-first');
+  assert.equal(workflow.layerPolicy.defaultLayerCount, 1);
+  assert.equal(workflow.layerPolicy.defaultEffectInstancesPerVisualGoal, 1);
+  assert.equal(workflow.layerPolicy.optionalHelpersRequireExplicitRequest, true);
+  assert.ok(workflow.layerPolicy.splitLayersOnlyWhen.includes('user explicitly asks for separate layer control'));
   assert.deepEqual(workflow.helperLayers.map((layer) => layer.type), ['light', 'null']);
   assert.ok(workflow.recommendedActionTypes.includes('addSolidLayer'));
-  assert.ok(workflow.recommendedActionTypes.includes('addLightLayer'));
+  assert.equal(workflow.recommendedActionTypes.includes('addLightLayer'), false);
+  assert.equal(workflow.recommendedActionTypes.includes('addNullLayer'), false);
   assert.ok(workflow.recommendedActionTypes.includes('setLayerProperties'));
+});
+
+test('built-in plugin workflows declare minimum-layer defaults', () => {
+  const helpers = loadContextHelpers();
+
+  const entries = helpers.effectWorkflowLibrary();
+
+  assert.ok(entries.length > 0);
+  for (const entry of entries) {
+    assert.equal(entry.layerPolicy.priority, 'minimum-layers-first');
+    assert.equal(entry.layerPolicy.optionalHelpersRequireExplicitRequest, true);
+    assert.equal(typeof entry.layerPolicy.defaultLayerCount, 'number');
+    assert.equal(entry.layerPolicy.defaultEffectInstancesPerVisualGoal, 1);
+  }
 });
 
 test('pluginWorkflow distinguishes adjustment-layer and source-layer effects', () => {
@@ -227,8 +247,10 @@ test('pluginWorkflow distinguishes adjustment-layer and source-layer effects', (
   });
 
   assert.equal(twitch.layerStrategy, 'adjustmentLayer');
+  assert.equal(twitch.layerPolicy.defaultLayerCount, 1);
   assert.ok(twitch.recommendedActionTypes.includes('addAdjustmentLayer'));
   assert.equal(twixtor.layerStrategy, 'sourceLayer');
+  assert.equal(twixtor.layerPolicy.defaultLayerCount, 0);
   assert.equal(twixtor.destructiveRisk, 'retimes-source-layer');
   assert.equal(twixtor.recommendedActionTypes.includes('addAdjustmentLayer'), false);
 });
@@ -243,6 +265,7 @@ test('pluginWorkflow marks unknown plugins for future online research', () => {
   });
 
   assert.equal(workflow.layerStrategy, 'unknown');
+  assert.equal(workflow.layerPolicy.defaultLayerCount, 0);
   assert.equal(workflow.onlineResearch.status, 'needed');
   assert.ok(workflow.onlineResearch.queries[0].includes('Mystery Render FX'));
   assert.ok(workflow.recommendedActionTypes.includes('addEffect'));

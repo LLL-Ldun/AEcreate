@@ -450,6 +450,17 @@ AECreateContext.effectWorkflowLibrary = function () {
     categoryTokens: ['particle', 'particles', '3d'],
     layerStrategy: 'solidCarrier',
     effectPlacement: 'carrierLayer',
+    layerPolicy: {
+      priority: 'minimum-layers-first',
+      defaultLayerCount: 1,
+      defaultEffectInstancesPerVisualGoal: 1,
+      optionalHelpersRequireExplicitRequest: true,
+      splitLayersOnlyWhen: [
+        'user explicitly asks for separate layer control',
+        'different timing, mask, blend mode, or compositing scope is required',
+        'the plugin cannot express the requested look in one effect instance'
+      ]
+    },
     carrierLayer: {
       type: 'solid',
       color: [0, 0, 0],
@@ -465,11 +476,12 @@ AECreateContext.effectWorkflowLibrary = function () {
       purpose: 'position-or-expression-control',
       optional: true
     }],
-    recommendedActionTypes: ['addSolidLayer', 'addLightLayer', 'addNullLayer', 'addEffect', 'setProperty', 'setKeyframes', 'setExpression', 'setLayerProperties'],
+    recommendedActionTypes: ['addSolidLayer', 'addEffect', 'setProperty', 'setKeyframes', 'setExpression', 'setLayerProperties'],
     notes: [
-      'Create a carrier solid above footage and apply particle/generator effects to that carrier.',
+      'Create one carrier solid above footage and apply the particle/generator effect to that carrier.',
       'Use ADD or SCREEN when the effect should overlay the original video.',
-      'Use light/null helpers when the plugin supports emitter or position control layers.'
+      'Do not split one visual idea into several similar particle carrier layers by default; combine body, trail, glow, and spark accents into the fewest effect instances the plugin can support.',
+      'Use light/null helpers only when the user asks for explicit helper control or the plugin workflow requires them.'
     ],
     onlineResearch: {
       status: 'optional',
@@ -482,6 +494,17 @@ AECreateContext.effectWorkflowLibrary = function () {
     categoryTokens: ['blur', 'stylize', 'distort', 'color', 'video copilot', 'sapphire', 'boris', 'red giant'],
     layerStrategy: 'adjustmentLayer',
     effectPlacement: 'adjustmentLayer',
+    layerPolicy: {
+      priority: 'minimum-layers-first',
+      defaultLayerCount: 1,
+      defaultEffectInstancesPerVisualGoal: 1,
+      optionalHelpersRequireExplicitRequest: true,
+      splitLayersOnlyWhen: [
+        'user explicitly asks for separate layer control',
+        'different timing, mask, blend mode, or compositing scope is required',
+        'stacking is required to separate incompatible plugin operations'
+      ]
+    },
     carrierLayer: {
       type: 'adjustment',
       timing: 'marker-span'
@@ -504,6 +527,17 @@ AECreateContext.effectWorkflowLibrary = function () {
     layerStrategy: 'sourceLayer',
     effectPlacement: 'sourceLayer',
     destructiveRisk: 'retimes-source-layer',
+    layerPolicy: {
+      priority: 'minimum-layers-first',
+      defaultLayerCount: 0,
+      defaultEffectInstancesPerVisualGoal: 1,
+      optionalHelpersRequireExplicitRequest: true,
+      splitLayersOnlyWhen: [
+        'user explicitly asks for separate layer control',
+        'the retime needs a duplicate or precomp to remain reversible',
+        'different timing sections need independent source treatment'
+      ]
+    },
     carrierLayer: null,
     helperLayers: [],
     recommendedActionTypes: ['addEffect', 'setProperty', 'setKeyframes', 'setExpression'],
@@ -561,6 +595,17 @@ AECreateContext.unknownPluginWorkflow = function (effectInfo) {
     matchedBy: [],
     layerStrategy: 'unknown',
     effectPlacement: 'targetLayer',
+    layerPolicy: {
+      priority: 'minimum-layers-first',
+      defaultLayerCount: 0,
+      defaultEffectInstancesPerVisualGoal: 1,
+      optionalHelpersRequireExplicitRequest: true,
+      splitLayersOnlyWhen: [
+        'user explicitly asks for separate layer control',
+        'official workflow research proves helper or carrier layers are required',
+        'different timing, mask, blend mode, or compositing scope is required'
+      ]
+    },
     carrierLayer: null,
     helperLayers: [],
     destructiveRisk: 'unknown',
