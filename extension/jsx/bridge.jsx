@@ -56,6 +56,113 @@ AECreateBridge.writeText = function (file, text) {
   if (!file.close()) AECreateBridge.fail('Unable to close file after writing: ' + file.fsName + AECreateBridge.errorSuffix(file));
 };
 
+AECreateBridge.appendText = function (file, text) {
+  AECreateBridge.ensureFolder(file.parent, 'parent folder');
+  file.encoding = 'UTF-8';
+  if (!file.open('a')) AECreateBridge.fail('Unable to open file for appending: ' + file.fsName + AECreateBridge.errorSuffix(file));
+  if (!file.write(text)) {
+    var writeError = file.error;
+    file.close();
+    AECreateBridge.fail('Unable to append file: ' + file.fsName + (writeError ? ': ' + writeError : ''));
+  }
+  if (!file.close()) AECreateBridge.fail('Unable to close file after appending: ' + file.fsName + AECreateBridge.errorSuffix(file));
+};
+
+AECreateBridge.safeFileSize = function (file) {
+  try {
+    return file && file.exists ? file.length : 0;
+  } catch (error) {
+    return -1;
+  }
+};
+
+AECreateBridge.operationLogFile = function (bridgeFolder) {
+  var logs = AECreateBridge.ensureFolder(new Folder(bridgeFolder.fsName + '/logs'), 'logs folder');
+  return new File(logs.fsName + '/panel-operations.jsonl');
+};
+
+AECreateBridge.operationSnapshot = function (bridgeFolder) {
+  return {
+    bridgeDir: bridgeFolder.fsName,
+    pendingActionBytes: AECreateBridge.safeFileSize(new File(bridgeFolder.fsName + '/pending-action.json')),
+    pendingPlansBytes: AECreateBridge.safeFileSize(new File(bridgeFolder.fsName + '/pending-plans.json')),
+    currentContextBytes: AECreateBridge.safeFileSize(new File(bridgeFolder.fsName + '/current-context.json')),
+    effectCatalogBytes: AECreateBridge.safeFileSize(new File(bridgeFolder.fsName + '/effect-catalog.json')),
+    effectWorkflowsBytes: AECreateBridge.safeFileSize(new File(bridgeFolder.fsName + '/effect-workflows.json'))
+  };
+};
+
+AECreateBridge.operationPayloadSummary = function (payloadText) {
+  var summary = { bytes: String(payloadText || '').length };
+  try {
+    var payload = payloadText ? AECreateJSON.parse(payloadText) : {};
+    var keys = [];
+    for (var key in payload) {
+      if (payload.hasOwnProperty(key)) keys.push(key);
+    }
+    summary.keys = keys;
+    if (payload.checked && typeof payload.checked.length === 'number') summary.checkedCount = payload.checked.length;
+    if (payload.plan && payload.plan.modules && typeof payload.plan.modules.length === 'number') summary.planModuleCount = payload.plan.modules.length;
+    if (payload.query) summary.query = String(payload.query).substr(0, 80);
+    if (payload.name) summary.name = String(payload.name).substr(0, 80);
+    if (payload.target) summary.target = String(payload.target).substr(0, 40);
+    if (payload.gpuMode) summary.gpuMode = String(payload.gpuMode);
+    if (payload.id) summary.id = String(payload.id).substr(0, 80);
+  } catch (error) {
+    summary.parseError = String(error);
+  }
+  return summary;
+};
+
+AECreateBridge.operationResultSummary = function (resultText, errorMessage) {
+  var summary = { bytes: String(resultText || '').length };
+  if (errorMessage) summary.error = String(errorMessage).substr(0, 240);
+  try {
+    var result = resultText ? AECreateJSON.parse(resultText) : {};
+    if (typeof result.ok === 'boolean') summary.ok = result.ok;
+    if (result.error) summary.error = String(result.error).substr(0, 240);
+    if (result.message) summary.message = String(result.message).substr(0, 160);
+    if (result.archive && result.archive.plans && typeof result.archive.plans.length === 'number') summary.archivePlanCount = result.archive.plans.length;
+    if (result.plan && result.plan.modules && typeof result.plan.modules.length === 'number') summary.planModuleCount = result.plan.modules.length;
+  } catch (error) {}
+  return summary;
+};
+
+AECreateBridge.trimOperationLog = function (file) {
+  try {
+    var maxBytes = 262144;
+    var keepBytes = 196608;
+    if (!file.exists || file.length <= maxBytes) return;
+    var text = AECreateBridge.readText(file) || '';
+    if (text.length <= keepBytes) return;
+    text = text.substr(text.length - keepBytes);
+    var firstBreak = text.indexOf('\n');
+    if (firstBreak >= 0) text = text.substr(firstBreak + 1);
+    AECreateBridge.writeText(file, text);
+  } catch (error) {}
+};
+
+AECreateBridge.recordOperationEvent = function (operation, phase, payloadText, resultText, errorMessage) {
+  try {
+    var folder = AECreateBridge.bridgeFolder();
+    var file = AECreateBridge.operationLogFile(folder);
+    var event = {
+      schemaVersion: 1,
+      loggedAt: new Date().toString(),
+      operation: String(operation || 'unknown'),
+      phase: String(phase || 'event'),
+      payload: AECreateBridge.operationPayloadSummary(payloadText || ''),
+      result: AECreateBridge.operationResultSummary(resultText || '', errorMessage || ''),
+      snapshot: AECreateBridge.operationSnapshot(folder)
+    };
+    AECreateBridge.appendText(file, AECreateJSON.stringify(event) + '\n');
+    AECreateBridge.trimOperationLog(file);
+    return true;
+  } catch (error) {
+    return false;
+  }
+};
+
 AECreateBridge.settings = function () {
   var file = AECreateBridge.settingsFile();
   var defaults = {

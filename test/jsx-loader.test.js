@@ -12,6 +12,14 @@ test('bridge loader uses stable filesystem path strings for optional JSX scripts
   assert.match(source, /\$\.evalFile\(file\.fsName\)/);
 });
 
+test('bridge loader exposes disposable operation diagnostics helpers', () => {
+  const source = fs.readFileSync(path.join(root, 'extension', 'jsx', 'bridge.jsx'), 'utf8');
+
+  assert.match(source, /panel-operations\.jsonl/);
+  assert.match(source, /AECreateBridge\.recordOperationEvent/);
+  assert.match(source, /AECreateBridge\.operationSnapshot/);
+});
+
 test('context JSX avoids raw non-ASCII text so ExtendScript evalFile cannot mojibake workflow strings', () => {
   const source = fs.readFileSync(path.join(root, 'extension', 'jsx', 'context.jsx'), 'utf8');
   const nonAscii = [];

@@ -72,3 +72,36 @@ test('bridge client decodes URI-encoded JSX responses before parsing JSON', asyn
   assert.equal(result.plan.title, '蓝色粒子');
   assert.equal(result.plan.summary, '横向爆发');
 });
+
+test('bridge client wraps JSX calls with operation diagnostics logging', async () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', 'extension', 'js', 'bridge-client.js'), 'utf8');
+  let evaluatedScript = '';
+
+  function CSInterface() {}
+  CSInterface.prototype.getSystemPath = function getSystemPath() {
+    return 'C:/Users/16693/AppData/Roaming/Adobe/CEP/extensions/com.aecreate.codexbridge';
+  };
+  CSInterface.prototype.evalScript = function evalScript(script, callback) {
+    evaluatedScript = script;
+    callback('{"ok":true,"message":"read"}');
+  };
+
+  const context = {
+    window: {},
+    CSInterface,
+    SystemPath: { EXTENSION: 'extension' },
+    JSON,
+    Promise,
+    String,
+    decodeURIComponent
+  };
+  vm.runInNewContext(source, context, { filename: 'bridge-client.js' });
+
+  const client = new context.window.AECreateBridgeClient();
+  const result = await client.call('readPendingAction', {});
+
+  assert.equal(result.ok, true);
+  assert.match(evaluatedScript, /recordOperationEvent\(functionName, 'start'/);
+  assert.match(evaluatedScript, /recordOperationEvent\(functionName, 'end'/);
+  assert.match(evaluatedScript, /recordOperationEvent\(failedFunctionName, 'error'/);
+});
