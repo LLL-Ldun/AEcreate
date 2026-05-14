@@ -38,6 +38,22 @@ This document is public-facing and safe to push. It records shipped updates, vis
 
 ## Update History / 更新记录
 
+### 2026-05-14 - Corrupt Localized Text Fallback / 本地化坏文本回退
+
+Commit: `dba3293`
+
+中文：
+- 修复中文界面中待应用方案仍显示 `????` 的问题；根因不是 CEP 传输层再次损坏，而是某些 `pending-action.json` / 历史方案里的中文 i18n 字段已经被写成真实问号字符。
+- 面板现在会识别高比例问号或连续问号的坏本地化文本，并自动跳过该字段，回退到基础字段或英文字段。
+- 该修复覆盖当前方案、模块标题/摘要、警告、依赖和历史方案列表，不需要用户每次刷新后手动修中文字段。
+- 验证：新增面板回归测试，覆盖 `zh` 字段为 `????` 时不再显示问号乱码。
+
+English:
+- Fixed remaining `????` output in the Chinese pending-plan UI; the root cause was already-corrupted localized fields in `pending-action.json` or archived plans, not a new CEP transport failure.
+- The panel now detects high-question-mark localized text and skips it, falling back to the base field or English field.
+- The fallback covers current plans, module title/summary text, warnings, requirements, and plan history entries.
+- Verification: added a panel regression test for corrupted `zh` localized fields.
+
 ### 2026-05-14 - Minimum-Layer Plugin Workflow Defaults / 插件工作流默认最少图层
 
 Commit: `6066b49`
