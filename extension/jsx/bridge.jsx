@@ -62,6 +62,7 @@ AECreateBridge.settings = function () {
     bridgeDir: AECreateBridge.defaultBridgeDir(),
     presetPaths: [],
     historyLimit: 50,
+    gpuMode: 'integratedSafe',
     showAdvancedLogs: false
   };
   var text = AECreateBridge.readText(file);
@@ -76,6 +77,7 @@ AECreateBridge.settings = function () {
       }
     }
     if (parsed.historyLimit > 0) defaults.historyLimit = parsed.historyLimit;
+    defaults.gpuMode = parsed.gpuMode === 'discretePerformance' ? 'discretePerformance' : 'integratedSafe';
     defaults.showAdvancedLogs = parsed.showAdvancedLogs === true;
   } catch (error) {}
   return defaults;
@@ -149,6 +151,18 @@ AECreateBridge.clearPresetFolders = function () {
     settings.presetPaths = [];
     AECreateBridge.saveSettings(settings);
     return AECreateBridge.respond({ ok: true, message: 'Cleared custom preset paths.', settings: settings });
+  } catch (error) {
+    return AECreateBridge.respond({ ok: false, error: String(error) });
+  }
+};
+
+AECreateBridge.setGpuMode = function (payloadText) {
+  try {
+    var payload = payloadText ? AECreateJSON.parse(payloadText) : {};
+    var settings = AECreateBridge.settings();
+    settings.gpuMode = payload.gpuMode === 'discretePerformance' ? 'discretePerformance' : 'integratedSafe';
+    AECreateBridge.saveSettings(settings);
+    return AECreateBridge.respond({ ok: true, message: 'GPU mode: ' + settings.gpuMode, settings: settings });
   } catch (error) {
     return AECreateBridge.respond({ ok: false, error: String(error) });
   }

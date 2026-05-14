@@ -114,6 +114,115 @@ test('exportContextData includes the built-in plugin workflow library', () => {
   assert.ok(result.context.supportedActionTypes.includes('addAdjustmentLayer'));
 });
 
+test('exportContextData defaults to GPU-safe context export without reading effect trees', () => {
+  class CompItem {}
+  const layer = {
+    index: 1,
+    name: 'Clip',
+    inPoint: 0,
+    outPoint: 5,
+    startTime: 0,
+    selected: true,
+    source: null,
+    property(name) {
+      if (name === 'ADBE Effect Parade') throw new Error('effect tree should not be read in safe mode');
+      if (name === 'ADBE Transform Group') return { numProperties: 0 };
+      if (name === 'Marker') return { numKeys: 0 };
+      return null;
+    }
+  };
+  const comp = new CompItem();
+  comp.name = 'Comp';
+  comp.width = 1280;
+  comp.height = 720;
+  comp.frameRate = 60;
+  comp.duration = 30;
+  comp.time = 1;
+  comp.selectedLayers = [layer];
+  comp.markerProperty = { numKeys: 0 };
+  const { helpers } = loadContextHelpers({
+    AECreateBridge: {
+      settings() {
+        return {};
+      }
+    },
+    app: {
+      project: { activeItem: comp, file: null },
+      effects: []
+    },
+    CompItem
+  });
+
+  const result = helpers.exportContextData();
+
+  assert.equal(result.ok, true);
+  assert.equal(result.context.panelSettings.gpuMode, 'integratedSafe');
+  assert.equal(result.context.selectedLayers[0].effectTreeMode, 'skipped-gpu-safe');
+  assert.equal(JSON.stringify(result.context.selectedLayers[0].effects), '[]');
+});
+
+test('exportContextData reads selected layer effect trees in discrete performance mode', () => {
+  class CompItem {}
+  const effect = {
+    propertyIndex: 1,
+    name: 'Glow',
+    matchName: 'Glow',
+    propertyType: 1,
+    value: 25,
+    numKeys: 0
+  };
+  const effects = {
+    numProperties: 1,
+    property(index) {
+      return index === 1 ? effect : null;
+    }
+  };
+  const layer = {
+    index: 1,
+    name: 'Clip',
+    inPoint: 0,
+    outPoint: 5,
+    startTime: 0,
+    selected: true,
+    source: null,
+    property(name) {
+      if (name === 'ADBE Effect Parade') return effects;
+      if (name === 'ADBE Transform Group') return { numProperties: 0 };
+      if (name === 'Marker') return { numKeys: 0 };
+      return null;
+    }
+  };
+  const comp = new CompItem();
+  comp.name = 'Comp';
+  comp.width = 1280;
+  comp.height = 720;
+  comp.frameRate = 60;
+  comp.duration = 30;
+  comp.time = 1;
+  comp.selectedLayers = [layer];
+  comp.markerProperty = { numKeys: 0 };
+  const { helpers } = loadContextHelpers({
+    AECreateBridge: {
+      settings() {
+        return { gpuMode: 'discretePerformance' };
+      }
+    },
+    app: {
+      project: { activeItem: comp, file: null },
+      effects: []
+    },
+    CompItem,
+    PropertyType: { PROPERTY: 1 }
+  });
+
+  const result = helpers.exportContextData();
+
+  assert.equal(result.ok, true);
+  assert.equal(result.context.panelSettings.gpuMode, 'discretePerformance');
+  assert.equal(result.context.selectedLayers[0].effectTreeMode, 'full');
+  assert.equal(result.context.selectedLayers[0].effects[0].matchName, 'Glow');
+});
+
 test('layerRecord includes source and transform context', () => {
   const { helpers } = loadContextHelpers({
     PropertyType: { PROPERTY: 1 }

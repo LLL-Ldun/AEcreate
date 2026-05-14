@@ -4,6 +4,9 @@
     zh: {
       appTitle: 'AEcreate Codex Bridge',
       languageLabel: '界面语言',
+      gpuModeLabel: 'GPU 模式',
+      gpuModeIntegratedSafe: '集显/安全',
+      gpuModeDiscretePerformance: '独显/性能',
       contextTitle: '上下文',
       noContextExported: '尚未导出上下文。',
       refreshContext: '刷新上下文',
@@ -78,6 +81,9 @@
     en: {
       appTitle: 'AEcreate Codex Bridge',
       languageLabel: 'Language',
+      gpuModeLabel: 'GPU Mode',
+      gpuModeIntegratedSafe: 'Integrated/Safe',
+      gpuModeDiscretePerformance: 'Discrete/Performance',
       contextTitle: 'Context',
       noContextExported: 'No context exported.',
       refreshContext: 'Refresh Context',

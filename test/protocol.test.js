@@ -21,6 +21,15 @@ test('normalizeSettings creates deterministic defaults', () => {
   assert.equal(result.bridgeDir, defaultSettings.bridgeDir);
   assert.equal(result.historyLimit, 50);
   assert.deepEqual(result.presetPaths, []);
+  assert.equal(result.gpuMode, 'integratedSafe');
+});
+
+test('normalizeSettings preserves a valid GPU safety mode', () => {
+  const performance = normalizeSettings({ gpuMode: 'discretePerformance' });
+  const invalid = normalizeSettings({ gpuMode: 'please-crash-my-driver' });
+
+  assert.equal(performance.gpuMode, 'discretePerformance');
+  assert.equal(invalid.gpuMode, 'integratedSafe');
 });
 
 test('validatePendingAction accepts a structured checked module', () => {

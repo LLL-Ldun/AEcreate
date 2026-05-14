@@ -499,6 +499,55 @@ test('plugin scan buttons send the requested effect query', async () => {
   assert.match(elements.effectScanStatus.textContent, /tc-Particular\.json/);
 });
 
+test('panel loads and saves the GPU safety mode setting', async () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', 'extension', 'js', 'panel.js'), 'utf8');
+  const elements = createPanelElements();
+  const calls = [];
+
+  function BridgeClient() {}
+  BridgeClient.prototype.call = function call(name, payload) {
+    calls.push({ name, payload });
+    if (name === 'readPendingAction') return Promise.resolve({ ok: false, error: 'No pending.' });
+    if (name === 'listPendingArchive') return Promise.resolve({ ok: true, archive: { plans: [] } });
+    if (name === 'getSettings') {
+      return Promise.resolve({ ok: true, settings: { presetPaths: [], gpuMode: 'integratedSafe' } });
+    }
+    if (name === 'setGpuMode') {
+      return Promise.resolve({ ok: true, settings: { presetPaths: [], gpuMode: payload.gpuMode } });
+    }
+    return Promise.resolve({ ok: true });
+  };
+
+  const context = {
+    window: {
+      AECreateBridgeClient: BridgeClient,
+      AECreatePanelI18n: createI18n(),
+      localStorage: createStorage()
+    },
+    document: createDocument(elements),
+    Promise,
+    Number,
+    Array,
+    String,
+    prompt() {
+      return null;
+    }
+  };
+
+  vm.runInNewContext(source, context, { filename: 'panel.js' });
+  await Promise.resolve();
+  await Promise.resolve();
+
+  assert.equal(elements.gpuMode.value, 'integratedSafe');
+
+  elements.gpuMode.value = 'discretePerformance';
+  elements.gpuMode.listeners.change.call(elements.gpuMode);
+  await Promise.resolve();
+
+  const call = calls.find((item) => item.name === 'setGpuMode');
+  assert.equal(JSON.stringify(call.payload), JSON.stringify({ gpuMode: 'discretePerformance' }));
+});
+
 test('plugin search suggestions filter installed effects while typing', async () => {
   const source = fs.readFileSync(path.join(__dirname, '..', 'extension', 'js', 'panel.js'), 'utf8');
   const elements = createPanelElements();
@@ -570,6 +619,7 @@ function createPanelElements() {
     'contextStatus',
     'markerList',
     'markerTarget',
+    'gpuMode',
     'presetPathList',
     'presetStatus',
     'effectScanQuery',

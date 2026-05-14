@@ -20,6 +20,13 @@
 
     <section class="section">
       <div class="section-title" data-i18n="contextTitle">上下文</div>
+      <label class="gpu-mode-control">
+        <span data-i18n="gpuModeLabel">GPU 模式</span>
+        <select id="gpuMode">
+          <option value="integratedSafe" data-i18n="gpuModeIntegratedSafe">集显/安全</option>
+          <option value="discretePerformance" data-i18n="gpuModeDiscretePerformance">独显/性能</option>
+        </select>
+      </label>
       <div id="contextStatus" class="status" data-i18n="noContextExported">尚未导出上下文。</div>
       <div class="button-row">
         <button id="refreshContext" data-i18n="refreshContext">刷新上下文</button>

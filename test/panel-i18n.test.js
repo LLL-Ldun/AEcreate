@@ -38,6 +38,8 @@ test('panel i18n defaults to Chinese and falls back for unknown language codes',
   assert.equal(i18n.t('en', 'pendingWarningLabel'), 'Warning');
   assert.equal(i18n.t('zh', 'effectParamsTitle'), '插件参数库');
   assert.equal(i18n.t('en', 'scanEffectParams'), 'Scan Plugin');
+  assert.equal(i18n.t('zh', 'gpuModeIntegratedSafe'), '集显/安全');
+  assert.equal(i18n.t('en', 'gpuModeDiscretePerformance'), 'Discrete/Performance');
 });
 
 test('panel i18n applies translated static text to DOM nodes', () => {

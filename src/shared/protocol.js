@@ -4,6 +4,7 @@ const defaultSettings = {
   bridgeDir: 'C:/Users/16693/Documents/AEEE/ae-codex-bridge',
   presetPaths: [],
   historyLimit: 50,
+  gpuMode: 'integratedSafe',
   showAdvancedLogs: false
 };
 
@@ -34,6 +35,7 @@ function normalizeSettings(input) {
     historyLimit: Number.isInteger(source.historyLimit) && source.historyLimit > 0
       ? source.historyLimit
       : defaultSettings.historyLimit,
+    gpuMode: source.gpuMode === 'discretePerformance' ? 'discretePerformance' : defaultSettings.gpuMode,
     showAdvancedLogs: source.showAdvancedLogs === true
   };
 }

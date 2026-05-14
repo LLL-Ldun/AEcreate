@@ -169,6 +169,10 @@ AECreateContext.propertyTree = function (group, depth) {
   return output;
 };
 
+AECreateContext.normalizeGpuMode = function (settings) {
+  return settings && settings.gpuMode === 'discretePerformance' ? 'discretePerformance' : 'integratedSafe';
+};
+
 AECreateContext.sourceRecord = function (source) {
   if (!source) return null;
   var record = {};
@@ -184,14 +188,24 @@ AECreateContext.sourceRecord = function (source) {
   return record.name || record.duration !== undefined || record.path ? record : null;
 };
 
-AECreateContext.layerRecord = function (layer) {
-  var effects = layer.property('ADBE Effect Parade');
+AECreateContext.layerRecord = function (layer, options) {
+  options = options || {};
+  var readEffectTrees = options.readEffectTrees === true;
   var transform = layer.property('ADBE Transform Group');
   var source = null;
+  var effects = [];
+  var effectTreeMode = readEffectTrees ? 'full' : 'skipped-gpu-safe';
   try {
     source = AECreateContext.sourceRecord(layer.source);
   } catch (sourceError) {
     source = { error: String(sourceError) };
+  }
+  if (readEffectTrees) {
+    try {
+      effects = AECreateContext.propertyTree(layer.property('ADBE Effect Parade'), 0);
+    } catch (effectsError) {
+      effects = [{ error: String(effectsError) }];
+    }
   }
   return {
     index: layer.index,
@@ -203,7 +217,8 @@ AECreateContext.layerRecord = function (layer) {
     source: source,
     markers: AECreateContext.markerList(layer.property('Marker')),
     transform: AECreateContext.propertyTree(transform, 0),
-    effects: AECreateContext.propertyTree(effects, 0)
+    effects: effects,
+    effectTreeMode: effectTreeMode
   };
 };
 
@@ -1632,9 +1647,12 @@ AECreateBridge.scanAllEffectParams = function (payloadText) {
 AECreateContext.exportContextData = function () {
   var comp = AECreateContext.activeComp();
   if (!comp) return { ok: false, error: 'No active composition.' };
+  var settings = AECreateBridge.settings();
+  settings.gpuMode = AECreateContext.normalizeGpuMode(settings);
+  var layerOptions = { readEffectTrees: settings.gpuMode === 'discretePerformance' };
   var selected = [];
   for (var i = 0; i < comp.selectedLayers.length; i++) {
-    selected.push(AECreateContext.layerRecord(comp.selectedLayers[i]));
+    selected.push(AECreateContext.layerRecord(comp.selectedLayers[i], layerOptions));
   }
   var context = {
     schemaVersion: 1,
@@ -1664,7 +1682,7 @@ AECreateContext.exportContextData = function () {
       entries: AECreateContext.visualWorkflowLibrary()
     },
     supportedActionTypes: AECreateContext.supportedActionTypes,
-    panelSettings: AECreateBridge.settings()
+    panelSettings: settings
   };
   context.contextFingerprint = AECreateContext.fingerprintContext(context);
   return { ok: true, context: context };

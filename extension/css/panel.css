@@ -38,7 +38,8 @@ body {
   padding: 5px 6px;
 }
 
-.marker-target-control {
+.marker-target-control,
+.gpu-mode-control {
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 8px;
@@ -47,7 +48,8 @@ body {
   margin-bottom: 8px;
 }
 
-.marker-target-control select {
+.marker-target-control select,
+.gpu-mode-control select {
   background: #171717;
   color: #f0f0f0;
   border: 1px solid #3a3a3a;

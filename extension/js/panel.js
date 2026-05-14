@@ -390,6 +390,10 @@
     return element.value === 'comp' ? 'comp' : 'layer';
   }
 
+  function normalizeGpuMode(value) {
+    return value === 'discretePerformance' ? 'discretePerformance' : 'integratedSafe';
+  }
+
   function pendingTargetText(plan) {
     if (!plan || !plan.target) return '';
     var name = plan.target.layerName || ('Layer ' + plan.target.layerIndex);
@@ -559,6 +563,12 @@
     setText('presetPathList', text('customPresetPaths') + ':\n' + state.presetPaths.join('\n'));
   }
 
+  function renderSettings(settings) {
+    settings = settings || {};
+    requireElement('gpuMode').value = normalizeGpuMode(settings.gpuMode);
+    renderPresetPaths(settings.presetPaths || []);
+  }
+
   function renderEffectScanResult(result) {
     if (!result.ok) {
       setText('effectScanStatus', result.error);
@@ -630,7 +640,7 @@
 
   function loadSettings() {
     bridge.call('getSettings', {}).then(function (result) {
-      if (result.ok && result.settings) renderPresetPaths(result.settings.presetPaths || []);
+      if (result.ok && result.settings) renderSettings(result.settings);
     });
   }
 
@@ -640,6 +650,14 @@
     state.language = i18n.normalizeLanguage(this.value);
     i18n.saveLanguage(window.localStorage, state.language);
     applyLanguage();
+  });
+  requireElement('gpuMode').addEventListener('change', function () {
+    var gpuMode = normalizeGpuMode(this.value);
+    this.value = gpuMode;
+    bridge.call('setGpuMode', { gpuMode: gpuMode }).then(function (result) {
+      if (result.ok && result.settings) renderSettings(result.settings);
+      setText('contextStatus', result.ok ? result.message : result.error);
+    });
   });
   requireElement('chooseBridge').addEventListener('click', function () {
     bridge.call('chooseBridgeFolder', {}).then(function (result) {
