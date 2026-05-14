@@ -40,7 +40,7 @@ This document is public-facing and safe to push. It records shipped updates, vis
 
 ### 2026-05-14 - Faster Parameter Name Enrichment / 参数名解析性能修复
 
-Commit: `03d17e6`
+Commit: `75c0f97`
 
 中文：
 - 修复刷新待应用方案时可能导致 AE 不响应的性能问题；根因是待应用方案里有大量参数动作时，`readPendingAction` 会为每个动作重复读取并解析 `effect-params/*.json`。
