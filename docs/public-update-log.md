@@ -38,9 +38,27 @@ This document is public-facing and safe to push. It records shipped updates, vis
 
 ## Update History / 更新记录
 
-### 2026-05-14 - Unicode Bridge and Visible Plugin Parameters / Unicode 桥接与可见插件参数
+### 2026-05-14 - Localized Pending Plan Text / 待应用方案双语显示
 
 Commit: `pending`
+
+中文：
+- 待应用方案现在支持 `titleI18n`、`summaryI18n`、`warningsI18n`、`requiresI18n` 等双语字段。
+- 面板会根据当前中文/English 语言选择显示对应的方案标题、摘要、模块说明、警告、依赖和历史方案文案。
+- “应用勾选”后的成功提示也会使用当前语言和模块双语标题，不再固定显示英文 `Applied modules:`。
+- 切换语言时会重新渲染当前方案与历史方案，不需要重新读取桥接目录。
+- 验证：新增面板回归测试，覆盖中文与英文之间切换时的待应用方案显示，以及应用后的本地化成功提示。
+
+English:
+- Pending plans now support bilingual fields such as `titleI18n`, `summaryI18n`, `warningsI18n`, and `requiresI18n`.
+- The panel renders plan titles, summaries, module text, warnings, requirements, and history entries according to the selected Chinese/English UI language.
+- The success message after applying checked modules now uses the selected language and localized module titles instead of always showing `Applied modules:`.
+- Switching language re-renders the current plan and plan history without re-reading the bridge folder.
+- Verification: added panel regression coverage for switching pending-plan text between Chinese and English, including the localized apply success message.
+
+### 2026-05-14 - Unicode Bridge and Visible Plugin Parameters / Unicode 桥接与可见插件参数
+
+Commit: `b129b02`
 
 中文：
 - 修复 CEP 面板从 JSX 桥接层读取方案时中文变成 `????` 的问题；桥接返回值现在会先 URL 编码，面板侧再解码后解析 JSON。

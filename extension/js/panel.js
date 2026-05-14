@@ -40,6 +40,50 @@
     return text(key).replace('{count}', String(count));
   }
 
+  function localizedValue(value, fallback) {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      return value[state.language] || value.en || value.zh || fallback || '';
+    }
+    if (Array.isArray(value)) return value;
+    if (value === undefined || value === null || value === '') return fallback || '';
+    return value;
+  }
+
+  function localizedField(source, fieldName, fallback) {
+    if (!source) return fallback || '';
+    var i18nValue = source[fieldName + 'I18n'];
+    if (i18nValue === undefined && source.i18n) i18nValue = source.i18n[fieldName];
+    if (i18nValue !== undefined) return localizedValue(i18nValue, source[fieldName] || fallback);
+    return localizedValue(source[fieldName], fallback);
+  }
+
+  function localizedList(source, fieldName) {
+    return localizedField(source, fieldName, source && source[fieldName]);
+  }
+
+  function selectedModuleNames(checked) {
+    if (!state.pending || !state.pending.modules) return [];
+    var checkedMap = {};
+    if (Array.isArray(checked)) {
+      checked.forEach(function (item) {
+        checkedMap[item.index] = item.checked;
+      });
+    }
+    var names = [];
+    state.pending.modules.forEach(function (module, index) {
+      var hasExplicitState = Object.prototype.hasOwnProperty.call(checkedMap, index);
+      var isChecked = hasExplicitState ? checkedMap[index] : module.checked !== false;
+      if (isChecked) names.push(localizedField(module, 'title', 'Module ' + (index + 1)));
+    });
+    return names;
+  }
+
+  function appliedModulesMessage(checked, fallback) {
+    var names = selectedModuleNames(checked);
+    if (!names.length) return fallback || '';
+    return text('pendingAppliedModules').replace('{modules}', names.join(', '));
+  }
+
   function selectedMarkerTarget() {
     var element = requireElement('markerTarget');
     return element.value === 'comp' ? 'comp' : 'layer';
@@ -53,14 +97,15 @@
   }
 
   function compactList(value) {
-    if (value instanceof Array) return value.join(', ');
+    if (Array.isArray(value)) return value.join(', ');
     return value ? String(value) : '';
   }
 
   function applyLanguage() {
     i18n.apply(document, state.language);
     requireElement('languageSelect').value = state.language;
-    if (!state.pending) setEmptyText('pendingSummary', 'noPendingAction');
+    if (state.pending) renderPending(state.pending);
+    else setEmptyText('pendingSummary', 'noPendingAction');
     renderPresetPaths(state.presetPaths || []);
     renderPendingArchive(state.pendingArchive, state.currentArchiveId);
   }
@@ -73,7 +118,7 @@
       setEmptyText('pendingSummary', 'noPendingAction');
       return;
     }
-    var summary = plan.title + '\n' + plan.summary;
+    var summary = localizedField(plan, 'title') + '\n' + localizedField(plan, 'summary');
     var target = pendingTargetText(plan);
     if (target) summary += '\n' + target;
     setText('pendingSummary', summary);
@@ -83,11 +128,11 @@
       row.innerHTML =
         '<input type="checkbox" data-index="' + index + '"' + (module.checked !== false ? ' checked' : '') + '>' +
         '<span><span class="module-title"></span><span class="module-summary"></span><span class="module-meta"></span><span class="module-warning"></span><span class="module-requirement"></span></span>';
-      row.querySelector('.module-title').textContent = module.title;
-      row.querySelector('.module-summary').textContent = module.summary;
+      row.querySelector('.module-title').textContent = localizedField(module, 'title');
+      row.querySelector('.module-summary').textContent = localizedField(module, 'summary');
       row.querySelector('.module-meta').textContent = formatActionCount(module.actions ? module.actions.length : 0);
-      var warnings = compactList(module.warnings);
-      var requires = compactList(module.requires);
+      var warnings = compactList(localizedList(module, 'warnings'));
+      var requires = compactList(localizedList(module, 'requires'));
       row.querySelector('.module-warning').textContent = warnings ? text('pendingWarningLabel') + ': ' + warnings : '';
       row.querySelector('.module-requirement').textContent = requires ? text('pendingRequiresLabel') + ': ' + requires : '';
       list.appendChild(row);
@@ -111,11 +156,11 @@
 
       var title = document.createElement('span');
       title.className = 'archive-title';
-      title.textContent = record.title || record.plan.title || 'Untitled plan';
+      title.textContent = localizedField(record.plan, 'title', record.title || 'Untitled plan');
 
       var summary = document.createElement('span');
       summary.className = 'archive-summary';
-      summary.textContent = record.summary || record.plan.summary || '';
+      summary.textContent = localizedField(record.plan, 'summary', record.summary || '');
 
       var meta = document.createElement('span');
       meta.className = 'archive-meta';
@@ -317,7 +362,7 @@
       return { index: Number(input.getAttribute('data-index')), checked: input.checked };
     });
     bridge.call('applyCheckedModules', { checked: checked }).then(function (result) {
-      setText('pendingSummary', result.ok ? result.message : result.error);
+      setText('pendingSummary', result.ok ? appliedModulesMessage(checked, result.message) : result.error);
     });
   });
   requireElement('discardPending').addEventListener('click', function () { bridge.call('discardPendingAction', {}).then(loadPending); });

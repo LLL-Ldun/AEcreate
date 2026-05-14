@@ -97,6 +97,110 @@ test('panel renders pending modules as list rows with action counts', async () =
   assert.ok(calls.some((call) => call.name === 'restorePendingAction'));
 });
 
+test('panel localizes pending and archived plan text from the selected language', async () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', 'extension', 'js', 'panel.js'), 'utf8');
+  const elements = createPanelElements();
+  const calls = [];
+
+  function BridgeClient() {}
+  BridgeClient.prototype.call = function call(name, payload) {
+    calls.push({ name, payload });
+    if (name === 'readPendingAction') {
+      return Promise.resolve({
+        ok: true,
+        plan: {
+          archiveId: 'current-id',
+          title: 'Fallback Plan',
+          titleI18n: { zh: '中文当前方案', en: 'English Current Plan' },
+          summary: 'Fallback summary.',
+          summaryI18n: { zh: '中文当前摘要。', en: 'English current summary.' },
+          target: { layerIndex: 1, layerName: 'Clip' },
+          modules: [{
+            id: 'm1',
+            title: 'Fallback Module',
+            titleI18n: { zh: '中文模块', en: 'English Module' },
+            summary: 'Fallback module summary.',
+            summaryI18n: { zh: '中文模块摘要。', en: 'English module summary.' },
+            warnings: ['Fallback warning'],
+            warningsI18n: { zh: ['中文警告'], en: ['English warning'] },
+            requires: ['Fallback requirement'],
+            requiresI18n: { zh: ['中文依赖'], en: ['English requirement'] },
+            actions: [{ type: 'addEffect' }]
+          }]
+        },
+        archive: {
+          plans: [{
+            id: 'old-id',
+            actionCount: 2,
+            title: 'Fallback Archive',
+            summary: 'Fallback archive summary.',
+            plan: {
+              title: 'Fallback Archive',
+              titleI18n: { zh: '中文历史方案', en: 'English Archive Plan' },
+              summary: 'Fallback archive summary.',
+              summaryI18n: { zh: '中文历史摘要。', en: 'English archive summary.' },
+              modules: [{ actions: [{ type: 'addEffect' }, { type: 'setProperty' }] }]
+            }
+          }]
+        }
+      });
+    }
+    if (name === 'applyCheckedModules') {
+      return Promise.resolve({ ok: true, message: 'Applied modules: Fallback Module' });
+    }
+    if (name === 'getSettings') return Promise.resolve({ ok: true, settings: { presetPaths: [] } });
+    return Promise.resolve({ ok: true });
+  };
+
+  const context = {
+    window: {
+      AECreateBridgeClient: BridgeClient,
+      AECreatePanelI18n: createI18n('zh'),
+      localStorage: createStorage('zh')
+    },
+    document: createDocument(elements),
+    Promise,
+    Number,
+    Array,
+    String,
+    prompt() {
+      return null;
+    }
+  };
+
+  vm.runInNewContext(source, context, { filename: 'panel.js' });
+  await Promise.resolve();
+  await Promise.resolve();
+
+  assert.match(elements.pendingSummary.textContent, /中文当前方案\n中文当前摘要。/);
+  assert.equal(elements.moduleList.children[0].querySelector('.module-title').textContent, '中文模块');
+  assert.equal(elements.moduleList.children[0].querySelector('.module-summary').textContent, '中文模块摘要。');
+  assert.equal(elements.moduleList.children[0].querySelector('.module-warning').textContent, '警告: 中文警告');
+  assert.equal(elements.moduleList.children[0].querySelector('.module-requirement').textContent, '依赖: 中文依赖');
+  assert.equal(elements.pendingArchiveList.children[0].querySelector('.archive-title').textContent, '中文历史方案');
+
+  elements.moduleList.children[0].querySelector('[data-index]').checked = true;
+  elements.applyChecked.listeners.click();
+  await Promise.resolve();
+  assert.equal(elements.pendingSummary.textContent, '已应用模块: 中文模块');
+
+  elements.languageSelect.value = 'en';
+  elements.languageSelect.listeners.change.call(elements.languageSelect);
+
+  assert.match(elements.pendingSummary.textContent, /English Current Plan\nEnglish current summary\./);
+  assert.equal(elements.moduleList.children[0].querySelector('.module-title').textContent, 'English Module');
+  assert.equal(elements.moduleList.children[0].querySelector('.module-summary').textContent, 'English module summary.');
+  assert.equal(elements.moduleList.children[0].querySelector('.module-warning').textContent, 'Warning: English warning');
+  assert.equal(elements.moduleList.children[0].querySelector('.module-requirement').textContent, 'Requires: English requirement');
+  assert.equal(elements.pendingArchiveList.children[0].querySelector('.archive-title').textContent, 'English Archive Plan');
+
+  elements.moduleList.children[0].querySelector('[data-index]').checked = true;
+  elements.applyChecked.listeners.click();
+  await Promise.resolve();
+  assert.equal(elements.pendingSummary.textContent, 'Applied modules: English Module');
+  assert.ok(calls.some((call) => call.name === 'readPendingAction'));
+});
+
 test('marker buttons use the selected marker target', async () => {
   const source = fs.readFileSync(path.join(__dirname, '..', 'extension', 'js', 'panel.js'), 'utf8');
   const elements = createPanelElements();
@@ -382,10 +486,10 @@ function findChildByClass(element, className) {
   return element.children.find((child) => child.className === className) || null;
 }
 
-function createI18n() {
+function createI18n(initialLanguage = 'en') {
   return {
     loadLanguage() {
-      return 'en';
+      return initialLanguage;
     },
     normalizeLanguage(language) {
       return language === 'en' ? 'en' : 'zh';
@@ -394,27 +498,46 @@ function createI18n() {
     apply() {},
     t(language, key) {
       const translations = {
-        noPendingAction: 'No pending action.',
-        noCustomPresetPaths: 'No custom preset paths.',
-        customPresetPaths: 'Custom preset paths',
-        scannedPresetPaths: 'Scanned paths',
-        actionCountOne: '1 action',
-        actionCountMany: '{count} actions',
-        noPendingArchive: 'No plan history.',
-        pendingTargetLabel: 'Target',
-        pendingWarningLabel: 'Warning',
-        pendingRequiresLabel: 'Requires'
+        zh: {
+          noPendingAction: '暂无待应用方案。',
+          noCustomPresetPaths: '暂无自定义预设路径。',
+          customPresetPaths: '自定义预设路径',
+          scannedPresetPaths: '已扫描路径',
+          actionCountOne: '{count} 个动作',
+          actionCountMany: '{count} 个动作',
+          noPendingArchive: '暂无历史方案。',
+          pendingTargetLabel: '目标',
+          pendingWarningLabel: '警告',
+          pendingRequiresLabel: '依赖',
+          pendingAppliedModules: '已应用模块: {modules}'
+        },
+        en: {
+          noPendingAction: 'No pending action.',
+          noCustomPresetPaths: 'No custom preset paths.',
+          customPresetPaths: 'Custom preset paths',
+          scannedPresetPaths: 'Scanned paths',
+          actionCountOne: '1 action',
+          actionCountMany: '{count} actions',
+          noPendingArchive: 'No plan history.',
+          pendingTargetLabel: 'Target',
+          pendingWarningLabel: 'Warning',
+          pendingRequiresLabel: 'Requires',
+          pendingAppliedModules: 'Applied modules: {modules}'
+        }
       };
-      return translations[key] || key;
+      return (translations[language] && translations[language][key]) || translations.en[key] || key;
     }
   };
 }
 
-function createStorage() {
+function createStorage(initialLanguage = null) {
   return {
+    value: initialLanguage,
     getItem() {
-      return null;
+      return this.value;
     },
-    setItem() {}
+    setItem(key, value) {
+      this.value = value;
+    }
   };
 }
