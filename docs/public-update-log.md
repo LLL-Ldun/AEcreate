@@ -38,6 +38,21 @@ This document is public-facing and safe to push. It records shipped updates, vis
 
 ## Update History / 更新记录
 
+### 2026-05-15 - Explicit Plan History Restore / 显式历史方案恢复
+Commit: `8e05dda`
+
+中文：
+- 在保持历史方案点击安全的前提下，重新提供历史方案恢复入口：点击历史卡片仍然只会选中，不会写回 `pending-action.json`。
+- 每个历史方案新增“恢复 / Restore”按钮；只有点击该按钮才会调用 `restorePendingAction`，把选中的历史方案恢复为当前待应用方案。
+- 恢复按钮不会弹出确认框，便于快速回到旧方案；删除按钮仍然只删除历史记录，不影响当前待应用方案。
+- 验证：新增面板回归测试覆盖“点历史不恢复、点恢复按钮才恢复”和中英文恢复文案；`npm test` 全量 72 项通过；已通过 `scripts/install-dev.ps1` 部署到本机 CEP 扩展目录。
+
+English:
+- Restored history-plan recovery while keeping safe history selection: clicking a history card still only selects it and does not rewrite `pending-action.json`.
+- Each archived plan now has an explicit Restore button; only that button calls `restorePendingAction` and makes the selected archived plan current again.
+- Restore does not show a confirmation dialog, so users can quickly bring back old plans; Delete remains explicit and only removes the archive record.
+- Verification: added panel regression coverage for “history click does not restore, Restore button does restore” plus bilingual Restore labels; `npm test`, 72 tests passed; deployed locally with `scripts/install-dev.ps1`.
+
 ### 2026-05-14 - Low-Repaint Plan History Selection / 低重绘历史方案选择
 Commit: `8c94cb4`
 
