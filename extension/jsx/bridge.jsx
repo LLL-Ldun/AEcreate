@@ -9,7 +9,7 @@ AECreateBridge.fail = function (message) {
 };
 
 AECreateBridge.extensionRoot = function () {
-  return File($.fileName).parent.fsName;
+  return new File(String($.fileName)).parent.fsName;
 };
 
 AECreateBridge.settingsFile = function () {
@@ -171,7 +171,7 @@ AECreateBridge.loadOptionalScript = function (fileName) {
     return false;
   }
   try {
-    $.evalFile(file);
+    $.evalFile(file.fsName);
     return true;
   } catch (error) {
     AECreateBridge.loadWarnings.push(fileName + ' failed to load: ' + String(error));

@@ -797,14 +797,14 @@ AECreateContext.visualWorkflowLibrary = function () {
       'color selected particles',
       'matte particles',
       'keyed edge',
-      '扣色',
-      '边缘颜色',
-      '刀边缘',
-      '刀刃',
-      '选择颜色',
-      '取色',
-      '颜色粒子',
-      '粒子效果'
+      '\u6263\u8272',
+      '\u8fb9\u7f18\u989c\u8272',
+      '\u5200\u8fb9\u7f18',
+      '\u5200\u5203',
+      '\u9009\u62e9\u989c\u8272',
+      '\u53d6\u8272',
+      '\u989c\u8272\u7c92\u5b50',
+      '\u7c92\u5b50\u6548\u679c'
     ],
     goalType: 'visual-preprocess-plus-particle',
     defaultPlugins: [{
@@ -865,7 +865,7 @@ AECreateContext.visualWorkflowLibrary = function () {
   }, {
     id: 'short-impact-adjustment-stack',
     label: 'Short Impact Adjustment Stack',
-    matchTokens: ['impact', 'hit', 'kill icon', 'shake', 'twitch', 'glow hit', '冲击', '击杀', '抖动', '卡点', '震动'],
+    matchTokens: ['impact', 'hit', 'kill icon', 'shake', 'twitch', 'glow hit', '\u51b2\u51fb', '\u51fb\u6740', '\u6296\u52a8', '\u5361\u70b9', '\u9707\u52a8'],
     goalType: 'marker-impact-adjustment',
     defaultPlugins: [{
       role: 'impact-distortion',
@@ -910,7 +910,7 @@ AECreateContext.visualWorkflowLibrary = function () {
   }, {
     id: 'retime-twixtor-speed-ramp',
     label: 'Retime Twixtor Speed Ramp',
-    matchTokens: ['twixtor', 'speed ramp', 'retime', 'rewind', 'time remap', '变速', '回溯', '时间重映射', '补帧'],
+    matchTokens: ['twixtor', 'speed ramp', 'retime', 'rewind', 'time remap', '\u53d8\u901f', '\u56de\u6eaf', '\u65f6\u95f4\u91cd\u6620\u5c04', '\u8865\u5e27'],
     goalType: 'source-retime',
     defaultPlugins: [{
       role: 'retime-interpolation',
@@ -949,7 +949,7 @@ AECreateContext.visualWorkflowLibrary = function () {
   }, {
     id: 'saber-path-glow',
     label: 'Saber Path Glow',
-    matchTokens: ['saber', 'path glow', 'outline glow', 'energy stroke', '路径光', '描边发光', '能量线', '边缘光'],
+    matchTokens: ['saber', 'path glow', 'outline glow', 'energy stroke', '\u8def\u5f84\u5149', '\u63cf\u8fb9\u53d1\u5149', '\u80fd\u91cf\u7ebf', '\u8fb9\u7f18\u5149'],
     goalType: 'path-or-mask-glow',
     defaultPlugins: [{
       role: 'path-glow',
@@ -986,7 +986,7 @@ AECreateContext.visualWorkflowLibrary = function () {
   }, {
     id: 'optical-flares-hit-feedback',
     label: 'Optical Flares Hit Feedback',
-    matchTokens: ['optical flares', 'lens flare', 'flare hit', 'light hit', '光晕', '镜头光斑', '爆闪', '击中光'],
+    matchTokens: ['optical flares', 'lens flare', 'flare hit', 'light hit', '\u5149\u6655', '\u955c\u5934\u5149\u6591', '\u7206\u95ea', '\u51fb\u4e2d\u5149'],
     goalType: 'flare-hit-feedback',
     defaultPlugins: [{
       role: 'flare-feedback',
@@ -1023,7 +1023,7 @@ AECreateContext.visualWorkflowLibrary = function () {
   }, {
     id: 'ripple-dissolve-adjustment',
     label: 'Ripple Dissolve Adjustment',
-    matchTokens: ['ripple dissolve', 'water dissolve', 'wave dissolve', 'transition ripple', '波纹溶解', '涟漪转场', '水波转场'],
+    matchTokens: ['ripple dissolve', 'water dissolve', 'wave dissolve', 'transition ripple', '\u6ce2\u7eb9\u6eb6\u89e3', '\u6d9f\u6f2a\u8f6c\u573a', '\u6c34\u6ce2\u8f6c\u573a'],
     goalType: 'adjustment-transition',
     defaultPlugins: [{
       role: 'ripple-dissolve',
@@ -1061,7 +1061,7 @@ AECreateContext.visualWorkflowLibrary = function () {
   }, {
     id: 'depth-map-smoke-composite',
     label: 'Depth Map Smoke Composite',
-    matchTokens: ['depth map smoke', 'depth smoke', 'fog depth', 'atmosphere depth', '景深烟雾', '深度烟雾', '雾气合成', '纵深'],
+    matchTokens: ['depth map smoke', 'depth smoke', 'fog depth', 'atmosphere depth', '\u666f\u6df1\u70df\u96fe', '\u6df1\u5ea6\u70df\u96fe', '\u96fe\u6c14\u5408\u6210', '\u7eb5\u6df1'],
     goalType: 'depth-matte-composite',
     defaultPlugins: [{
       role: 'depth-matte',
@@ -1105,7 +1105,7 @@ AECreateContext.visualWorkflowLibrary = function () {
   }, {
     id: 'tracked-light-or-overlay',
     label: 'Tracked Light Or Overlay',
-    matchTokens: ['track light', 'tracked overlay', 'motion track', 'follow target', '跟踪光', '跟随光', '跟踪叠加', '运动跟踪'],
+    matchTokens: ['track light', 'tracked overlay', 'motion track', 'follow target', '\u8ddf\u8e2a\u5149', '\u8ddf\u968f\u5149', '\u8ddf\u8e2a\u53e0\u52a0', '\u8fd0\u52a8\u8ddf\u8e2a'],
     goalType: 'tracked-overlay',
     defaultPlugins: [{
       role: 'tracking-control',
@@ -1148,7 +1148,7 @@ AECreateContext.visualWorkflowLibrary = function () {
   }, {
     id: 'texture-plasma-glow-overlay',
     label: 'Texture Plasma Glow Overlay',
-    matchTokens: ['plasma glow', 'texture glow', 'energy texture', 'fractal glow', '纹理发光', '能量纹理', '等离子', '火焰纹理'],
+    matchTokens: ['plasma glow', 'texture glow', 'energy texture', 'fractal glow', '\u7eb9\u7406\u53d1\u5149', '\u80fd\u91cf\u7eb9\u7406', '\u7b49\u79bb\u5b50', '\u706b\u7130\u7eb9\u7406'],
     goalType: 'generator-overlay',
     defaultPlugins: [{
       role: 'texture-generator',
@@ -1192,7 +1192,7 @@ AECreateContext.visualWorkflowLibrary = function () {
   }, {
     id: 'transition-preset-two-shot',
     label: 'Transition Preset Two Shot',
-    matchTokens: ['transition preset', 'two shot transition', 'cut transition', 'preset transition', '转场预设', '两段转场', '镜头衔接', '预设转场'],
+    matchTokens: ['transition preset', 'two shot transition', 'cut transition', 'preset transition', '\u8f6c\u573a\u9884\u8bbe', '\u4e24\u6bb5\u8f6c\u573a', '\u955c\u5934\u8854\u63a5', '\u9884\u8bbe\u8f6c\u573a'],
     goalType: 'two-shot-transition',
     defaultPlugins: [{
       role: 'preset-or-effect-stack',
