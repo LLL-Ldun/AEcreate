@@ -379,10 +379,30 @@ AECreateActions.validateTargetLayerIndex = function (pending, comp) {
   if (!pending.target || !AECreateActions.isPositiveInteger(pending.target.layerIndex)) {
     return { ok: false, error: 'Pending action target layerIndex must be a positive integer. Requested index: ' + (pending.target ? pending.target.layerIndex : 'missing') + ', comp.numLayers: ' + comp.numLayers + '.' };
   }
-  if (pending.target.layerIndex > comp.numLayers) {
+  var targetName = AECreateActions.isNonEmptyString(pending.target.layerName) ? pending.target.layerName : null;
+  var indexLayer = pending.target.layerIndex <= comp.numLayers ? comp.layer(pending.target.layerIndex) : null;
+  if (targetName) {
+    if (indexLayer && indexLayer.name === targetName) return { ok: true, layer: indexLayer };
+    var matches = [];
+    for (var i = 1; i <= comp.numLayers; i++) {
+      var candidate = comp.layer(i);
+      if (candidate && candidate.name === targetName) matches.push(candidate);
+    }
+    if (matches.length === 1) {
+      return {
+        ok: true,
+        layer: matches[0],
+        warning: 'Target layer index changed; resolved by layerName: ' + targetName
+      };
+    }
+    if (matches.length > 1) {
+      return { ok: false, error: 'Pending action target layerName is ambiguous: ' + targetName + ' matched ' + matches.length + ' layers.' };
+    }
+  }
+  if (!indexLayer) {
     return { ok: false, error: 'Pending action target layerIndex is out of range. Requested index: ' + pending.target.layerIndex + ', comp.numLayers: ' + comp.numLayers + '.' };
   }
-  return { ok: true };
+  return { ok: true, layer: indexLayer };
 };
 
 AECreateBridge.readPendingAction = function () {
@@ -445,14 +465,14 @@ AECreateBridge.applyCheckedModules = function (payloadText) {
     var checkedMap = AECreateActions.checkedMap(payload);
     var pending = AECreateActions.pendingPlanFromPayload(payload);
     var expectedContextFingerprint = AECreateActions.currentContextFingerprint();
-    AECreateActions.validatePendingActionOrFail(pending, expectedContextFingerprint);
+    AECreateActions.validatePendingActionOrFail(pending, null);
 
     var comp = AECreateActions.activeComp();
     if (!comp) return AECreateBridge.respond({ ok: false, error: 'No active composition.' });
     var targetCheck = AECreateActions.validateTargetLayerIndex(pending, comp);
     if (!targetCheck.ok) return AECreateBridge.respond(targetCheck);
 
-    var layer = comp.layer(pending.target.layerIndex);
+    var layer = targetCheck.layer || comp.layer(pending.target.layerIndex);
     if (!layer) return AECreateBridge.respond({ ok: false, error: 'Target layer not found.' });
 
     var applied = [];
@@ -479,6 +499,10 @@ AECreateBridge.applyCheckedModules = function (payloadText) {
     }
 
     var response = { ok: true, message: 'Applied modules: ' + applied.join(', ') };
+    if (AECreateActions.isNonEmptyString(expectedContextFingerprint) && pending.contextFingerprint !== expectedContextFingerprint) {
+      postApplyWarnings.push('contextFingerprint changed; applied as reusable plan after resolving target layer.');
+    }
+    if (targetCheck.warning) postApplyWarnings.push(targetCheck.warning);
     if (postApplyWarnings.length) response.warning = postApplyWarnings.join(' ');
     return AECreateBridge.respond(response);
   } catch (error) {

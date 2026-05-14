@@ -38,6 +38,22 @@ This document is public-facing and safe to push. It records shipped updates, vis
 
 ## Update History / 更新记录
 
+### 2026-05-14 - Reusable Pending Plans / 可重复应用方案
+
+Commit: `pending`
+
+中文：
+- 待应用方案现在可以重复应用；第一次应用后 AE 工程新增图层导致 `contextFingerprint` 变化时，不再直接拒绝执行。
+- 应用时仍保留结构校验和目标层校验；如果原 `target.layerIndex` 已因新增 AEcreate 图层而偏移，会使用 `target.layerName` 在当前合成中重新解析唯一目标层。
+- 当 fingerprint 已变化但目标层可安全解析时，执行结果会返回 warning，而不是报错中断。
+- 验证：新增执行器回归测试，覆盖旧 fingerprint + 目标层 index 偏移时仍能应用到原素材层。
+
+English:
+- Pending plans can now be applied repeatedly; AE-created layers changing the `contextFingerprint` after the first apply no longer hard-stop execution.
+- The executor still validates structure and target layer safety; if `target.layerIndex` shifted because AEcreate inserted layers, it resolves the unique current target by `target.layerName`.
+- A changed fingerprint now returns a warning when the target can be safely resolved instead of aborting the apply.
+- Verification: added executor regression coverage for stale fingerprint plus shifted target-layer index.
+
 ### 2026-05-14 - Corrupt Localized Text Fallback / 本地化坏文本回退
 
 Commit: `dba3293`

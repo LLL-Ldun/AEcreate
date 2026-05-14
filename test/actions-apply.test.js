@@ -166,6 +166,80 @@ test('applyCheckedModules can use edited pending plan from payload', () => {
   assert.equal(result.message, 'Applied modules: Edited Glow');
 });
 
+test('applyCheckedModules can repeat stale-fingerprint plans by resolving the target layer name', () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', 'extension', 'jsx', 'actions.jsx'), 'utf8');
+
+  class CompItem {}
+  const generatedLayer = { name: 'AEcreate_lizi_left_air_turbulence_particles' };
+  const targetLayer = { name: 'canju.mp4' };
+  const activeComp = new CompItem();
+  activeComp.numLayers = 2;
+  activeComp.layer = function layer(index) {
+    if (index === 1) return generatedLayer;
+    if (index === 2) return targetLayer;
+    return null;
+  };
+
+  const context = vm.createContext({
+    AECreateBridge: {
+      respond(object) {
+        return JSON.stringify(object);
+      },
+      fail(message) {
+        throw new Error(message);
+      }
+    },
+    app: {
+      project: { activeItem: activeComp },
+      beginUndoGroup() {},
+      endUndoGroup() {}
+    },
+    CompItem,
+    Error,
+    String,
+    isFinite,
+    Math
+  });
+  context.AECreateJSON = vm.runInContext('JSON', context);
+
+  vm.runInContext(source, context, { filename: 'actions.jsx' });
+  const pendingPlan = {
+    schemaVersion: 1,
+    createdAt: '2026-05-14T13:40:00+08:00',
+    contextFingerprint: 'old-fingerprint',
+    title: 'Reusable Particular',
+    summary: 'Apply a reusable particle setup.',
+    target: { compId: 'active', layerIndex: 1, layerName: 'canju.mp4' },
+    modules: [{
+      id: 'm1',
+      title: 'Particles',
+      summary: 'Apply particles.',
+      checked: true,
+      actions: [{ type: 'addEffect', name: 'Trapcode Particular' }]
+    }]
+  };
+  context.AECreateActions.readPendingPlan = function readPendingPlan() {
+    return context.AECreateJSON.parse(JSON.stringify(pendingPlan));
+  };
+  context.AECreateActions.currentContextFingerprint = function currentContextFingerprint() {
+    return 'changed-after-first-apply';
+  };
+  context.AECreateActions.applyModule = function applyModule(layer, module) {
+    assert.equal(layer, targetLayer);
+    assert.equal(module.title, 'Particles');
+  };
+  context.AECreateActions.log = function log() {};
+  context.AECreateActions.writeHistory = function writeHistory() {};
+
+  const raw = context.AECreateBridge.applyCheckedModules(JSON.stringify({
+    checked: [{ index: 0, checked: true }]
+  }));
+  const result = JSON.parse(raw);
+
+  assert.equal(result.ok, true, result.error);
+  assert.equal(result.message, 'Applied modules: Particles');
+});
+
 test('applyModule can target effects at a newly created particle layer', () => {
   const source = fs.readFileSync(path.join(__dirname, '..', 'extension', 'jsx', 'actions.jsx'), 'utf8');
 
