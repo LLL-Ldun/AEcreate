@@ -5,6 +5,7 @@
     pending: null,
     pendingArchive: null,
     currentArchiveId: null,
+    selectedArchiveId: null,
     language: i18n.loadLanguage(window.localStorage),
     availableEffects: [],
     effectsLoaded: false
@@ -483,12 +484,22 @@
     list.removeAttribute('data-i18n');
     list.removeAttribute('data-empty-i18n');
     var plans = state.pendingArchive.plans || [];
+    var selectedExists = false;
+    for (var p = 0; p < plans.length; p++) {
+      if (plans[p] && plans[p].id === state.selectedArchiveId && plans[p].id !== state.currentArchiveId) {
+        selectedExists = true;
+        break;
+      }
+    }
+    if (!selectedExists) state.selectedArchiveId = null;
     var shown = 0;
     plans.forEach(function (record) {
       if (!record || !record.plan || record.id === state.currentArchiveId) return;
-      var item = document.createElement('button');
-      item.className = 'archive-item';
+      var item = document.createElement('div');
+      item.className = 'archive-item' + (record.id === state.selectedArchiveId ? ' is-selected' : '');
       item.setAttribute('data-archive-id', record.id);
+      item.setAttribute('role', 'button');
+      item.setAttribute('tabindex', '0');
 
       var title = document.createElement('span');
       title.className = 'archive-title';
@@ -502,11 +513,26 @@
       meta.className = 'archive-meta';
       meta.textContent = formatActionCount(record.actionCount || 0);
 
+      var deleteButton = document.createElement('button');
+      deleteButton.className = 'archive-delete';
+      deleteButton.setAttribute('type', 'button');
+      deleteButton.textContent = text('deleteArchive');
+      deleteButton.addEventListener('click', function (event) {
+        if (event && event.stopPropagation) event.stopPropagation();
+        deletePendingArchive(record.id);
+      });
+
       item.appendChild(title);
       item.appendChild(summary);
       item.appendChild(meta);
+      item.appendChild(deleteButton);
       item.addEventListener('click', function () {
-        restorePending(record.id);
+        selectPendingArchive(record.id);
+      });
+      item.addEventListener('keydown', function (event) {
+        if (!event || (event.key !== 'Enter' && event.key !== ' ')) return;
+        if (event.preventDefault) event.preventDefault();
+        selectPendingArchive(record.id);
       });
       list.appendChild(item);
       shown++;
@@ -543,11 +569,16 @@
     });
   }
 
-  function restorePending(id) {
-    bridge.call('restorePendingAction', { id: id }).then(function (result) {
+  function selectPendingArchive(id) {
+    state.selectedArchiveId = id;
+    renderPendingArchive(state.pendingArchive, state.currentArchiveId);
+  }
+
+  function deletePendingArchive(id) {
+    bridge.call('deletePendingArchive', { id: id }).then(function (result) {
       if (result.ok) {
-        renderPending(result.plan);
-        renderPendingArchive(result.archive, result.currentArchiveId);
+        if (state.selectedArchiveId === id) state.selectedArchiveId = null;
+        renderPendingArchive(result.archive, state.currentArchiveId);
       } else {
         setText('pendingSummary', result.error);
       }

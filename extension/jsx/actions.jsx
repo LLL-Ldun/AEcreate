@@ -234,6 +234,23 @@ AECreateActions.findArchivedPlan = function (id) {
   return { archive: archive, record: null };
 };
 
+AECreateActions.deleteArchivedPlan = function (id) {
+  var archive = AECreateActions.readPendingArchive();
+  var kept = [];
+  var deleted = false;
+  for (var i = 0; i < archive.plans.length; i++) {
+    if (archive.plans[i] && archive.plans[i].id === id) {
+      deleted = true;
+      continue;
+    }
+    kept.push(archive.plans[i]);
+  }
+  if (!deleted) AECreateBridge.fail('Archived pending plan not found: ' + id);
+  archive = { schemaVersion: 1, updatedAt: new Date().toString(), plans: kept };
+  AECreateActions.writePendingArchive(archive);
+  return archive;
+};
+
 AECreateActions.hasField = function (object, name) {
   return object && object.hasOwnProperty && object.hasOwnProperty(name);
 };
@@ -438,6 +455,22 @@ AECreateBridge.restorePendingAction = function (payloadText) {
       plan: found.record.plan,
       archive: remembered.archive,
       currentArchiveId: remembered.id
+    });
+  } catch (error) {
+    return AECreateBridge.respond({ ok: false, error: String(error) });
+  }
+};
+
+AECreateBridge.deletePendingArchive = function (payloadText) {
+  try {
+    var payload = AECreateJSON.parse(payloadText || '{}');
+    if (!AECreateActions.isNonEmptyString(payload.id)) AECreateBridge.fail('deletePendingArchive requires id.');
+    var archive = AECreateActions.deleteArchivedPlan(payload.id);
+    return AECreateBridge.respond({
+      ok: true,
+      message: 'Deleted archived pending plan.',
+      deletedId: payload.id,
+      archive: archive
     });
   } catch (error) {
     return AECreateBridge.respond({ ok: false, error: String(error) });

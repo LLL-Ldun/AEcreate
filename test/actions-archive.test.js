@@ -36,6 +36,23 @@ test('restorePendingAction writes an archived plan back to pending-action.json',
   assert.equal(pending.title, 'First Plan');
 });
 
+test('deletePendingArchive removes archived plan without touching current pending action', () => {
+  const context = loadActionsWithFiles({
+    'C:/bridge/pending-action.json': JSON.stringify(createPlan('First Plan'))
+  });
+  const archived = JSON.parse(context.AECreateBridge.readPendingAction());
+  const id = archived.archive.plans[0].id;
+  context.files['C:/bridge/pending-action.json'] = JSON.stringify(createPlan('Second Plan'));
+
+  const deleted = JSON.parse(context.AECreateBridge.deletePendingArchive(JSON.stringify({ id })));
+  const pending = JSON.parse(context.files['C:/bridge/pending-action.json']);
+
+  assert.equal(deleted.ok, true, deleted.error);
+  assert.equal(deleted.deletedId, id);
+  assert.equal(deleted.archive.plans.some((record) => record.id === id), false);
+  assert.equal(pending.title, 'Second Plan');
+});
+
 test('readPendingAction enriches effect property labels from scanned params', () => {
   const plan = createPlan('Particular Plan');
   plan.modules[0].actions = [{

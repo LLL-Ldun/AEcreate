@@ -215,11 +215,17 @@ button.full {
   background: #202020;
   border: 1px solid #3a3a3a;
   color: #f0f0f0;
+  cursor: pointer;
   display: grid;
   gap: 3px;
   padding: 7px;
   text-align: left;
   width: 100%;
+}
+
+.archive-item.is-selected {
+  border-color: #6fa6ff;
+  background: #252f3f;
 }
 
 .archive-title {
@@ -234,6 +240,13 @@ button.full {
 .archive-meta {
   color: #9fb8df;
   font-size: 11px;
+}
+
+.archive-delete {
+  justify-self: start;
+  margin-top: 4px;
+  padding: 4px 8px;
+  background: #6f3d4b;
 }
 
 .module {

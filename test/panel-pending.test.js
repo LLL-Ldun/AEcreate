@@ -51,6 +51,9 @@ test('panel renders pending modules as list rows with action counts', async () =
         message: 'Restored pending plan.'
       });
     }
+    if (name === 'deletePendingArchive') {
+      return Promise.resolve({ ok: true, deletedId: payload.id, archive: { plans: [] } });
+    }
     if (name === 'getSettings') return Promise.resolve({ ok: true, settings: { presetPaths: [] } });
     if (name === 'exportContext') return Promise.resolve({ ok: true, message: 'exported' });
     return Promise.resolve({ ok: true });
@@ -94,7 +97,13 @@ test('panel renders pending modules as list rows with action counts', async () =
 
   elements.pendingArchiveList.children[0].listeners.click();
   await Promise.resolve();
-  assert.ok(calls.some((call) => call.name === 'restorePendingAction'));
+  assert.equal(calls.some((call) => call.name === 'restorePendingAction'), false);
+  assert.match(elements.pendingArchiveList.children[0].className, /is-selected/);
+
+  elements.pendingArchiveList.children[0].querySelector('.archive-delete').listeners.click({ stopPropagation() {} });
+  await Promise.resolve();
+  const deleteCall = calls.find((call) => call.name === 'deletePendingArchive');
+  assert.equal(deleteCall.payload.id, 'old-id');
 });
 
 test('panel localizes pending and archived plan text from the selected language', async () => {
