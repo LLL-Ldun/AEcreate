@@ -40,7 +40,7 @@ This document is public-facing and safe to push. It records shipped updates, vis
 
 ### 2026-05-14 - Localized Parameter Preview Labels / 参数预览标签随语言切换
 
-Commit: `pending`
+Commit: `0969cc4`
 
 中文：
 - 参数预览列表现在会根据面板语言显示标签，中文界面使用“图层 / 效果 / 名称 / 持续时间 / 关键帧数值”等中文字段。
