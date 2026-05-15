@@ -45,6 +45,29 @@ test('effectScanMatchesEffect identifies stale scans for the same plugin', () =>
   }), false);
 });
 
+test('effectScanMetadataFromText reads scan status without parsing the full params tree', () => {
+  const helpers = loadContextHelpers();
+  const text = [
+    '{"schemaVersion":1,',
+    '"scannedAt":"2026-05-16T10:00:00+08:00",',
+    '"effect":{"name":"Trapcode Particular","matchName":"tc Particular","category":"RG"},',
+    '"workflow":{"id":"particle-solid-carrier"},',
+    '"params":[this would be a huge tree and is intentionally not valid JSON],',
+    '"parameterCount":428,',
+    '"truncated":true}'
+  ].join('');
+
+  const record = helpers.effectScanMetadataFromText(text, 'C:/bridge/effect-params/tc-Particular.json');
+
+  assert.equal(record.scannedAt, '2026-05-16T10:00:00+08:00');
+  assert.equal(record.outputPath, 'C:/bridge/effect-params/tc-Particular.json');
+  assert.equal(record.effect.name, 'Trapcode Particular');
+  assert.equal(record.effect.matchName, 'tc Particular');
+  assert.equal(record.effect.category, 'RG');
+  assert.equal(record.parameterCount, 428);
+  assert.equal(record.truncated, true);
+});
+
 test('effectScanStatusRecords marks installed plugins as scanned unscanned or failed', () => {
   const helpers = loadContextHelpers();
   const records = helpers.effectScanStatusRecords([

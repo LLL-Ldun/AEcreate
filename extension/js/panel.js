@@ -33,6 +33,11 @@
     return i18n.t(state.language, key);
   }
 
+  function defer(fn) {
+    if (typeof setTimeout === 'function') setTimeout(fn, 25);
+    else fn();
+  }
+
   function setEmptyText(id, key) {
     var element = requireElement(id);
     element.setAttribute('data-empty-i18n', key);
@@ -866,15 +871,37 @@
       setText('effectScanStatus', text('effectStatusNoneSelected'));
       return;
     }
-    renderEffectScanProgress(selected.length, 0, 0);
-    bridge.call('scanSelectedEffectParams', {
-      effects: selected,
-      maxDepth: 8,
-      maxRecords: 12000
-    }).then(function (result) {
-      renderEffectScanResult(result, selected.length);
-      if (result.ok) loadEffectScanStatus({ preserveScanStatus: true });
-    });
+    var scannedCount = 0;
+    var failedCount = 0;
+    var index = 0;
+    renderEffectScanProgress(selected.length, scannedCount, failedCount);
+
+    function scanNextSelectedEffect() {
+      if (index >= selected.length) {
+        loadEffectScanStatus({ preserveScanStatus: true });
+        return;
+      }
+      bridge.call('scanSelectedEffectParams', {
+        effects: [selected[index]],
+        maxDepth: 8,
+        maxRecords: 12000,
+        progressReportMode: 'append',
+        resetReport: index === 0,
+        requestedCount: selected.length
+      }).then(function (result) {
+        if (result.ok) {
+          scannedCount += result.scannedCount || 0;
+          failedCount += result.failedCount || 0;
+        } else {
+          failedCount++;
+        }
+        renderEffectScanProgress(selected.length, scannedCount, failedCount);
+        index++;
+        defer(scanNextSelectedEffect);
+      });
+    }
+
+    defer(scanNextSelectedEffect);
   }
 
   function loadSettings() {

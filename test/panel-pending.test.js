@@ -793,6 +793,89 @@ test('plugin scan status list can select unscanned plugins and scan only those',
   assert.equal(JSON.stringify(scanCall.payload.effects), JSON.stringify([{ name: 'Deep Glow', matchName: 'Deep Glow' }]));
 });
 
+test('scan checked plugins updates progress after each scanned plugin', async () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', 'extension', 'js', 'panel.js'), 'utf8');
+  const elements = createPanelElements();
+  const calls = [];
+  const timers = [];
+
+  function BridgeClient() {}
+  BridgeClient.prototype.call = function call(name, payload) {
+    calls.push({ name, payload });
+    if (name === 'readPendingAction') return Promise.resolve({ ok: false, error: 'No pending.' });
+    if (name === 'listPendingArchive') return Promise.resolve({ ok: true, archive: { plans: [] } });
+    if (name === 'getSettings') return Promise.resolve({ ok: true, settings: { presetPaths: [] } });
+    if (name === 'listEffectScanStatus') {
+      return Promise.resolve({
+        ok: true,
+        effects: [
+          { name: 'Deep Glow', matchName: 'Deep Glow', category: 'Glow', scanStatus: 'unscanned', workflowStatus: 'known' },
+          { name: 'Twitch', matchName: 'Twitch', category: 'Glitch', scanStatus: 'unscanned', workflowStatus: 'known' }
+        ],
+        summary: { total: 2, scanned: 0, unscanned: 2, failed: 0 }
+      });
+    }
+    if (name === 'scanSelectedEffectParams') {
+      const effect = payload.effects[0];
+      if (effect.matchName === 'Deep Glow') {
+        return Promise.resolve({ ok: true, message: 'Scanned 1 selected plugins. Failed: 0.', scannedCount: 1, failedCount: 0 });
+      }
+      return Promise.resolve({ ok: true, message: 'Scanned 0 selected plugins. Failed: 1.', scannedCount: 0, failedCount: 1 });
+    }
+    return Promise.resolve({ ok: true });
+  };
+
+  const context = {
+    window: {
+      AECreateBridgeClient: BridgeClient,
+      AECreatePanelI18n: createI18n(),
+      localStorage: createStorage()
+    },
+    document: createDocument(elements),
+    Promise,
+    Number,
+    Array,
+    String,
+    prompt() {
+      return null;
+    },
+    confirm() {
+      return true;
+    },
+    setTimeout(fn) {
+      timers.push(fn);
+    }
+  };
+
+  vm.runInNewContext(source, context, { filename: 'panel.js' });
+  await Promise.resolve();
+  elements.refreshEffectStatus.listeners.click();
+  await Promise.resolve();
+
+  elements.selectUnscannedEffects.listeners.click();
+  elements.scanSelectedEffects.listeners.click();
+  assert.match(elements.effectScanStatus.textContent, /Selected 2 plugins/);
+  assert.match(elements.effectScanStatus.textContent, /scanned 0/);
+  assert.equal(calls.filter((call) => call.name === 'scanSelectedEffectParams').length, 0);
+
+  timers.shift()();
+  await Promise.resolve();
+  assert.match(elements.effectScanStatus.textContent, /Selected 2 plugins/);
+  assert.match(elements.effectScanStatus.textContent, /scanned 1/);
+  assert.match(elements.effectScanStatus.textContent, /failed 0/);
+
+  timers.shift()();
+  await Promise.resolve();
+  assert.match(elements.effectScanStatus.textContent, /Selected 2 plugins/);
+  assert.match(elements.effectScanStatus.textContent, /scanned 1/);
+  assert.match(elements.effectScanStatus.textContent, /failed 1/);
+
+  const scanCalls = calls.filter((call) => call.name === 'scanSelectedEffectParams');
+  assert.equal(scanCalls.length, 2);
+  assert.equal(JSON.stringify(scanCalls[0].payload.effects), JSON.stringify([{ name: 'Deep Glow', matchName: 'Deep Glow' }]));
+  assert.equal(JSON.stringify(scanCalls[1].payload.effects), JSON.stringify([{ name: 'Twitch', matchName: 'Twitch' }]));
+});
+
 function createPanelElements() {
   const ids = [
     'languageSelect',
