@@ -1,7 +1,10 @@
 const crypto = require('node:crypto');
 
+const defaultBridgeDir = 'C:/Users/16693/Documents/AEEE/ae-codex-bridge';
+
 const defaultSettings = {
-  bridgeDir: 'C:/Users/16693/Documents/AEEE/ae-codex-bridge',
+  bridgeDir: defaultBridgeDir,
+  bridgeDirHistory: [defaultBridgeDir],
   presetPaths: [],
   historyLimit: 50,
   gpuMode: 'integratedSafe',
@@ -25,10 +28,12 @@ const allowedActionTypes = [
 
 function normalizeSettings(input) {
   const source = input && typeof input === 'object' ? input : {};
+  const bridgeDir = typeof source.bridgeDir === 'string' && source.bridgeDir.trim()
+    ? source.bridgeDir
+    : defaultSettings.bridgeDir;
   return {
-    bridgeDir: typeof source.bridgeDir === 'string' && source.bridgeDir.trim()
-      ? source.bridgeDir
-      : defaultSettings.bridgeDir,
+    bridgeDir,
+    bridgeDirHistory: normalizeBridgeDirHistory(source.bridgeDirHistory, bridgeDir),
     presetPaths: Array.isArray(source.presetPaths)
       ? source.presetPaths.filter((item) => typeof item === 'string' && item.trim())
       : [],
@@ -38,6 +43,21 @@ function normalizeSettings(input) {
     gpuMode: source.gpuMode === 'discretePerformance' ? 'discretePerformance' : defaultSettings.gpuMode,
     showAdvancedLogs: source.showAdvancedLogs === true
   };
+}
+
+function normalizeBridgeDirHistory(input, bridgeDir) {
+  const history = Array.isArray(input)
+    ? input.filter((item) => typeof item === 'string' && item.trim())
+    : [];
+  const seen = new Set();
+  return [bridgeDir, ...history]
+    .filter((item) => {
+      const key = item.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .slice(0, 8);
 }
 
 function validatePendingAction(action, options = {}) {

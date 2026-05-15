@@ -12,8 +12,21 @@ AECreateBridge.extensionRoot = function () {
   return new File(String($.fileName)).parent.fsName;
 };
 
-AECreateBridge.settingsFile = function () {
+AECreateBridge.settingsFolder = function () {
+  var root = Folder.userData ? Folder.userData.fsName : AECreateBridge.extensionRoot();
+  return AECreateBridge.ensureFolder(new Folder(root + '/AEcreate'), 'settings folder');
+};
+
+AECreateBridge.persistentSettingsFile = function () {
+  return new File(AECreateBridge.settingsFolder().fsName + '/settings.json');
+};
+
+AECreateBridge.legacySettingsFile = function () {
   return new File(AECreateBridge.extensionRoot() + '/settings.json');
+};
+
+AECreateBridge.settingsFile = function () {
+  return AECreateBridge.persistentSettingsFile();
 };
 
 AECreateBridge.defaultBridgeDir = function () {
@@ -163,35 +176,90 @@ AECreateBridge.recordOperationEvent = function (operation, phase, payloadText, r
   }
 };
 
-AECreateBridge.settings = function () {
-  var file = AECreateBridge.settingsFile();
-  var defaults = {
+AECreateBridge.uniquePathList = function (paths) {
+  var output = [];
+  if (!paths || typeof paths.length !== 'number') return output;
+  for (var i = 0; i < paths.length; i++) {
+    if (!paths[i]) continue;
+    var path = String(paths[i]);
+    var key = path.toLowerCase();
+    var exists = false;
+    for (var j = 0; j < output.length; j++) {
+      if (String(output[j]).toLowerCase() === key) {
+        exists = true;
+        break;
+      }
+    }
+    if (!exists) output.push(path);
+  }
+  return output;
+};
+
+AECreateBridge.rememberBridgeDir = function (settings, bridgeDir) {
+  if (!settings) settings = {};
+  settings.bridgeDir = bridgeDir || settings.bridgeDir || AECreateBridge.defaultBridgeDir();
+  var paths = [settings.bridgeDir];
+  if (settings.bridgeDirHistory && typeof settings.bridgeDirHistory.length === 'number') {
+    for (var i = 0; i < settings.bridgeDirHistory.length; i++) paths.push(settings.bridgeDirHistory[i]);
+  }
+  settings.bridgeDirHistory = AECreateBridge.uniquePathList(paths).slice(0, 8);
+  return settings;
+};
+
+AECreateBridge.normalizeSettings = function (source) {
+  var settings = {
     bridgeDir: AECreateBridge.defaultBridgeDir(),
+    bridgeDirHistory: [],
     presetPaths: [],
     historyLimit: 50,
     gpuMode: 'integratedSafe',
     showAdvancedLogs: false
   };
+  if (!source) return AECreateBridge.rememberBridgeDir(settings, settings.bridgeDir);
+  if (source.bridgeDir) settings.bridgeDir = String(source.bridgeDir);
+  if (source.presetPaths && typeof source.presetPaths.length === 'number') {
+    for (var i = 0; i < source.presetPaths.length; i++) {
+      if (source.presetPaths[i]) settings.presetPaths.push(String(source.presetPaths[i]));
+    }
+  }
+  if (source.bridgeDirHistory && typeof source.bridgeDirHistory.length === 'number') {
+    for (var j = 0; j < source.bridgeDirHistory.length; j++) {
+      if (source.bridgeDirHistory[j]) settings.bridgeDirHistory.push(String(source.bridgeDirHistory[j]));
+    }
+  }
+  if (source.historyLimit > 0) settings.historyLimit = source.historyLimit;
+  settings.gpuMode = source.gpuMode === 'discretePerformance' ? 'discretePerformance' : 'integratedSafe';
+  settings.showAdvancedLogs = source.showAdvancedLogs === true;
+  return AECreateBridge.rememberBridgeDir(settings, settings.bridgeDir);
+};
+
+AECreateBridge.settings = function () {
+  var file = AECreateBridge.settingsFile();
   var text = AECreateBridge.readText(file);
-  if (!text) return defaults;
+  var migrated = false;
+  if (!text) {
+    var legacyFile = AECreateBridge.legacySettingsFile();
+    if (legacyFile.fsName !== file.fsName) {
+      text = AECreateBridge.readText(legacyFile);
+      migrated = !!text;
+    }
+  }
+  if (!text) {
+    var defaults = AECreateBridge.normalizeSettings({});
+    AECreateBridge.saveSettings(defaults);
+    return defaults;
+  }
   try {
     var parsed = AECreateJSON.parse(text);
-    if (parsed.bridgeDir) defaults.bridgeDir = parsed.bridgeDir;
-    if (parsed.presetPaths && typeof parsed.presetPaths.length === 'number') {
-      defaults.presetPaths = [];
-      for (var i = 0; i < parsed.presetPaths.length; i++) {
-        if (parsed.presetPaths[i]) defaults.presetPaths.push(parsed.presetPaths[i]);
-      }
-    }
-    if (parsed.historyLimit > 0) defaults.historyLimit = parsed.historyLimit;
-    defaults.gpuMode = parsed.gpuMode === 'discretePerformance' ? 'discretePerformance' : 'integratedSafe';
-    defaults.showAdvancedLogs = parsed.showAdvancedLogs === true;
+    var settings = AECreateBridge.normalizeSettings(parsed);
+    if (migrated) AECreateBridge.saveSettings(settings);
+    return settings;
   } catch (error) {}
-  return defaults;
+  return AECreateBridge.normalizeSettings({});
 };
 
 AECreateBridge.saveSettings = function (settings) {
-  AECreateBridge.writeText(AECreateBridge.settingsFile(), AECreateJSON.stringify(settings));
+  AECreateBridge.writeText(AECreateBridge.settingsFile(), AECreateJSON.stringify(AECreateBridge.normalizeSettings(settings)));
 };
 
 AECreateBridge.bridgeFolder = function () {
@@ -213,7 +281,7 @@ AECreateBridge.chooseBridgeFolder = function () {
     var folder = Folder.selectDialog('Choose AEcreate bridge folder');
     if (!folder) return AECreateBridge.respond({ ok: false, error: 'Bridge folder selection cancelled.' });
     var settings = AECreateBridge.settings();
-    settings.bridgeDir = folder.fsName;
+    settings = AECreateBridge.rememberBridgeDir(settings, folder.fsName);
     AECreateBridge.saveSettings(settings);
     AECreateBridge.bridgeFolder();
     return AECreateBridge.respond({ ok: true, message: 'Bridge folder: ' + folder.fsName });

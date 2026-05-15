@@ -13,6 +13,7 @@ test('normalizeSettings keeps a user-selected bridgeDir and fills defaults', () 
   assert.equal(result.bridgeDir, 'D:/AEBridge');
   assert.equal(result.historyLimit, 12);
   assert.deepEqual(result.presetPaths, []);
+  assert.deepEqual(result.bridgeDirHistory, ['D:/AEBridge']);
   assert.equal(result.showAdvancedLogs, false);
 });
 
@@ -21,6 +22,7 @@ test('normalizeSettings creates deterministic defaults', () => {
   assert.equal(result.bridgeDir, defaultSettings.bridgeDir);
   assert.equal(result.historyLimit, 50);
   assert.deepEqual(result.presetPaths, []);
+  assert.deepEqual(result.bridgeDirHistory, [defaultSettings.bridgeDir]);
   assert.equal(result.gpuMode, 'integratedSafe');
 });
 
