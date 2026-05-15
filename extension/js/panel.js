@@ -666,6 +666,10 @@
     return text('effectStatusUnscanned');
   }
 
+  function effectWorkflowLabel(effect) {
+    return effect.workflowStatus === 'known' ? text('effectWorkflowKnown') : text('effectWorkflowUnknown');
+  }
+
   function effectStatusFilterMatches(effect) {
     var filter = requireElement('effectScanFilter').value || 'all';
     return filter === 'all' || effect.scanStatus === filter;
@@ -716,6 +720,10 @@
         detail.textContent = text('effectStatusDetailFailed').replace('{error}', effect.scanError || '');
       } else {
         detail.textContent = text('effectStatusDetailUnscanned');
+      }
+      detail.textContent += ' | ' + effectWorkflowLabel(effect);
+      if (effect.workflowStatus === 'known' && effect.workflowLabel) {
+        detail.textContent += ' - ' + effect.workflowLabel;
       }
 
       var badge = document.createElement('span');

@@ -720,9 +720,9 @@ test('plugin scan status list can select unscanned plugins and scan only those',
       return Promise.resolve({
         ok: true,
         effects: [
-          { name: 'Trapcode Particular', matchName: 'tc Particular', category: 'RG', scanStatus: 'scanned', parameterCount: 88 },
-          { name: 'Deep Glow', matchName: 'Deep Glow', category: 'Glow', scanStatus: 'unscanned' },
-          { name: 'Broken FX', matchName: 'Broken FX', category: 'Unstable', scanStatus: 'failed', scanError: 'Unable to add effect.' }
+          { name: 'Trapcode Particular', matchName: 'tc Particular', category: 'RG', scanStatus: 'scanned', parameterCount: 88, workflowStatus: 'known', workflowLabel: 'Particle Solid Carrier', workflowLayerStrategy: 'solidCarrier' },
+          { name: 'Deep Glow', matchName: 'Deep Glow', category: 'Glow', scanStatus: 'unscanned', workflowStatus: 'known', workflowLabel: 'Adjustment Layer Effect', workflowLayerStrategy: 'adjustmentLayer' },
+          { name: 'Broken FX', matchName: 'Broken FX', category: 'Unstable', scanStatus: 'failed', scanError: 'Unable to add effect.', workflowStatus: 'unknown', workflowLabel: 'Unknown Plugin Workflow', workflowLayerStrategy: 'unknown' }
         ],
         summary: { total: 3, scanned: 1, unscanned: 1, failed: 1 }
       });
@@ -759,8 +759,10 @@ test('plugin scan status list can select unscanned plugins and scan only those',
 
   assert.equal(elements.effectStatusList.children.length, 3);
   assert.match(combinedText(elements.effectStatusList.children[0]), /Scanned/);
+  assert.match(combinedText(elements.effectStatusList.children[0]), /Workflow: In Library/);
   assert.match(combinedText(elements.effectStatusList.children[1]), /Unscanned/);
   assert.match(combinedText(elements.effectStatusList.children[2]), /Failed/);
+  assert.match(combinedText(elements.effectStatusList.children[2]), /Workflow: Not In Library/);
 
   elements.selectUnscannedEffects.listeners.click();
   elements.scanSelectedEffects.listeners.click();
@@ -946,6 +948,8 @@ function createI18n(initialLanguage = 'en') {
           effectStatusDetailScanned: '参数 {count} 个 | 上次扫描: {time}',
           effectStatusDetailUnscanned: '尚无参数树缓存。',
           effectStatusDetailFailed: '上次扫描失败: {error}',
+          effectWorkflowKnown: 'Workflow: 已入库',
+          effectWorkflowUnknown: 'Workflow: 未入库',
           effectStatusSummary: '插件名单: 共 {total} 个，已扫描 {scanned} 个，未扫描 {unscanned} 个，失败 {failed} 个。',
           effectStatusNotLoaded: '尚未加载插件扫描名单。',
           effectStatusEmpty: '没有匹配的插件。',
@@ -986,6 +990,8 @@ function createI18n(initialLanguage = 'en') {
           effectStatusDetailScanned: '{count} parameters | Last scan: {time}',
           effectStatusDetailUnscanned: 'No parameter tree cache yet.',
           effectStatusDetailFailed: 'Last scan failed: {error}',
+          effectWorkflowKnown: 'Workflow: In Library',
+          effectWorkflowUnknown: 'Workflow: Not In Library',
           effectStatusSummary: 'Plugin list: {total} total, {scanned} scanned, {unscanned} unscanned, {failed} failed.',
           effectStatusNotLoaded: 'Plugin scan list not loaded.',
           effectStatusEmpty: 'No matching plugins.',

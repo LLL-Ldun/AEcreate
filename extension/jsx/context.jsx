@@ -1533,6 +1533,11 @@ AECreateContext.effectScanStatusRecords = function (effects, scans, failures) {
       category: effect.category,
       scanStatus: 'unscanned'
     };
+    var workflow = AECreateContext.pluginWorkflow(effect);
+    record.workflowStatus = workflow.id === 'unknown-plugin-workflow' ? 'unknown' : 'known';
+    record.workflowId = workflow.id;
+    record.workflowLabel = workflow.label;
+    record.workflowLayerStrategy = workflow.layerStrategy;
     for (var scanIndex = 0; scanIndex < scanList.length; scanIndex++) {
       if (!AECreateContext.effectScanMatchesEffect(scanList[scanIndex], effect)) continue;
       record.scanStatus = 'scanned';

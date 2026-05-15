@@ -71,6 +71,20 @@ test('effectScanStatusRecords marks installed plugins as scanned unscanned or fa
   assert.equal(records[2].scanError, 'Unable to add effect.');
 });
 
+test('effectScanStatusRecords shows whether plugins have a built-in workflow entry', () => {
+  const helpers = loadContextHelpers();
+  const records = helpers.effectScanStatusRecords([
+    { name: 'Trapcode Particular', matchName: 'tc Particular', category: 'RG Particles and 3D' },
+    { name: 'Mystery Render FX', matchName: 'Mystery Render FX', category: 'Unknown Vendor' }
+  ], [], []);
+
+  assert.equal(records[0].workflowStatus, 'known');
+  assert.equal(records[0].workflowId, 'particle-solid-carrier');
+  assert.equal(records[0].workflowLayerStrategy, 'solidCarrier');
+  assert.equal(records[1].workflowStatus, 'unknown');
+  assert.equal(records[1].workflowId, 'unknown-plugin-workflow');
+});
+
 test('selectedEffectsFromPayload resolves only checked plugins from the installed list', () => {
   const helpers = loadContextHelpers();
   const effects = [
