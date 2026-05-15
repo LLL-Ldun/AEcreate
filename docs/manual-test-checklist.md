@@ -4,6 +4,8 @@
 - [ ] Restart After Effects 2025.
 - [ ] Open `Window > Extensions > AEcreate Codex Bridge`.
 - [ ] Choose a bridge folder outside material, project, and render folders.
+- [ ] Close and reopen the panel, then confirm the same bridge folder is still used without choosing it again.
+- [ ] Run `powershell -ExecutionPolicy Bypass -File scripts/install-dev.ps1` again, restart AE, and confirm the same bridge folder is still used after the extension is replaced.
 - [ ] Open a test composition.
 - [ ] Select one layer.
 - [ ] Add a `kill_icon` marker from the panel.
@@ -18,11 +20,13 @@
 - [ ] Click `Scan Presets`.
 - [ ] Confirm the scan result lists the expected preset paths, including `Documents/Adobe/After Effects`.
 - [ ] Confirm `preset-cache.json` exists and includes `.ffx` files with source path and relative category.
+- [ ] Close and reopen the panel after preset scanning, then confirm the same bridge folder still exposes the existing `preset-cache.json` without requiring another preset scan.
 - [ ] In `Plugin Params`, enter an installed effect name or match name, such as `tc Particular` or `CC Particle World`.
 - [ ] In `Plugin Params`, type a partial query such as `p` and confirm matching installed effects appear in a scrollable suggestion list.
 - [ ] Click a plugin suggestion and confirm the search input is filled with that plugin name.
 - [ ] Click `Scan Plugin`.
 - [ ] Confirm `<bridge-folder>/effect-catalog.json`, `<bridge-folder>/effect-workflows.json`, and an `effect-params/*.json` file are created.
+- [ ] Close and reopen the panel after plugin scanning, then confirm the same bridge folder still exposes `effect-catalog.json`, `effect-workflows.json`, and the existing `effect-params/*.json` scan records.
 - [ ] Scan the same plugin again and confirm old `effect-params/*.json` files for that same plugin are removed instead of accumulating duplicates.
 - [ ] Confirm the parameter JSON includes parameter display names, match names, value types, paths, current values, and keyframe/expression capability flags where AE exposes them.
 - [ ] Confirm the parameter JSON includes `hasMin`/`minValue` and `hasMax`/`maxValue` for ranged properties where AE exposes them.

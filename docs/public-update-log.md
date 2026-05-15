@@ -38,6 +38,25 @@ This document is public-facing and safe to push. It records shipped updates, vis
 
 ## Update History / 更新记录
 
+### 2026-05-15 - Persistent Bridge Settings And Scan Cache Reuse / 持久桥接设置与扫描缓存复用
+Commit: `d2ce6c3`
+
+中文：
+- 面板设置从 CEP 扩展安装目录迁移到 `%APPDATA%/AEcreate/settings.json`，避免开发安装、覆盖扩展或 AE 重新加载后丢失用户选择的桥接目录。
+- 新增 `bridgeDirHistory` 设置字段，保存最近使用过的桥接目录；当前桥接目录始终排在第一项，供后续 UI 切回历史目录使用。
+- 兼容旧版本：如果旧扩展目录中仍有 `settings.json`，工具会读取并迁移到新的持久设置位置。
+- 开发安装脚本在替换扩展前会先保留旧 `settings.json`，减少本地调试安装导致桥接目录重置的风险。
+- 预设扫描和插件参数扫描记录继续保存在用户选择的桥接目录中，例如 `preset-cache.json`、`effect-catalog.json`、`effect-workflows.json` 和 `effect-params/*.json`；桥接目录稳定后，用户无需重复扫描即可继续使用这些缓存。
+- 手动测试清单增加“重开面板、重装开发版后桥接目录仍保持”和“扫描缓存可复用”的检查项。
+
+English:
+- Panel settings now persist at `%APPDATA%/AEcreate/settings.json` instead of inside the installed CEP extension folder, so replacing or reinstalling the panel no longer resets the selected bridge folder.
+- Added `bridgeDirHistory` to remember recently used bridge folders, with the active bridge folder kept first for future UI reuse.
+- Backward compatible migration reads legacy extension-local `settings.json` when present and writes it to the new persistent settings location.
+- The development install script preserves a legacy `settings.json` before replacing the extension folder.
+- Preset and plugin parameter scan records continue to live in the selected bridge folder, including `preset-cache.json`, `effect-catalog.json`, `effect-workflows.json`, and `effect-params/*.json`; once the bridge folder is stable, users can reuse those scan records without scanning again.
+- Manual testing now covers bridge folder persistence across panel reopen/dev reinstall and scan-cache reuse.
+
 ### 2026-05-15 - Disposable Panel Operation Diagnostics / 可丢弃面板操作诊断日志
 Commit: `4d2458d`
 
