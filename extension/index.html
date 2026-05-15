@@ -74,6 +74,18 @@
         <button id="scanEffectParams" data-i18n="scanEffectParams">扫描此插件</button>
         <button id="scanAllEffectParams" data-i18n="scanAllEffectParams">扫描全部插件</button>
       </div>
+      <div class="plugin-status-toolbar">
+        <select id="effectScanFilter">
+          <option value="all" data-i18n="effectFilterAll">全部插件</option>
+          <option value="unscanned" data-i18n="effectFilterUnscanned">未扫描</option>
+          <option value="scanned" data-i18n="effectFilterScanned">已扫描</option>
+          <option value="failed" data-i18n="effectFilterFailed">上次失败</option>
+        </select>
+        <button id="refreshEffectStatus" data-i18n="refreshEffectStatus">刷新名单</button>
+        <button id="selectUnscannedEffects" data-i18n="selectUnscannedEffects">勾选未扫描</button>
+        <button id="scanSelectedEffects" data-i18n="scanSelectedEffects">扫描勾选插件</button>
+      </div>
+      <div id="effectStatusList" class="effect-status-list" data-i18n="effectStatusNotLoaded">尚未加载插件扫描名单。</div>
       <pre id="effectScanStatus" class="box" data-i18n="effectParamsNotScanned">尚未扫描插件参数树。</pre>
     </section>
 

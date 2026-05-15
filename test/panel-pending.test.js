@@ -705,6 +705,71 @@ test('plugin search suggestions filter installed effects while typing', async ()
   assert.ok(calls.some((call) => call.name === 'listAvailableEffects'));
 });
 
+test('plugin scan status list can select unscanned plugins and scan only those', async () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', 'extension', 'js', 'panel.js'), 'utf8');
+  const elements = createPanelElements();
+  const calls = [];
+
+  function BridgeClient() {}
+  BridgeClient.prototype.call = function call(name, payload) {
+    calls.push({ name, payload });
+    if (name === 'readPendingAction') return Promise.resolve({ ok: false, error: 'No pending.' });
+    if (name === 'listPendingArchive') return Promise.resolve({ ok: true, archive: { plans: [] } });
+    if (name === 'getSettings') return Promise.resolve({ ok: true, settings: { presetPaths: [] } });
+    if (name === 'listEffectScanStatus') {
+      return Promise.resolve({
+        ok: true,
+        effects: [
+          { name: 'Trapcode Particular', matchName: 'tc Particular', category: 'RG', scanStatus: 'scanned', parameterCount: 88 },
+          { name: 'Deep Glow', matchName: 'Deep Glow', category: 'Glow', scanStatus: 'unscanned' },
+          { name: 'Broken FX', matchName: 'Broken FX', category: 'Unstable', scanStatus: 'failed', scanError: 'Unable to add effect.' }
+        ],
+        summary: { total: 3, scanned: 1, unscanned: 1, failed: 1 }
+      });
+    }
+    if (name === 'scanSelectedEffectParams') {
+      return Promise.resolve({ ok: true, message: 'Scanned 1 selected plugins. Failed: 0.', scannedCount: 1, failedCount: 0 });
+    }
+    return Promise.resolve({ ok: true });
+  };
+
+  const context = {
+    window: {
+      AECreateBridgeClient: BridgeClient,
+      AECreatePanelI18n: createI18n(),
+      localStorage: createStorage()
+    },
+    document: createDocument(elements),
+    Promise,
+    Number,
+    Array,
+    String,
+    prompt() {
+      return null;
+    },
+    confirm() {
+      return true;
+    }
+  };
+
+  vm.runInNewContext(source, context, { filename: 'panel.js' });
+  await Promise.resolve();
+  elements.refreshEffectStatus.listeners.click();
+  await Promise.resolve();
+
+  assert.equal(elements.effectStatusList.children.length, 3);
+  assert.match(combinedText(elements.effectStatusList.children[0]), /Scanned/);
+  assert.match(combinedText(elements.effectStatusList.children[1]), /Unscanned/);
+  assert.match(combinedText(elements.effectStatusList.children[2]), /Failed/);
+
+  elements.selectUnscannedEffects.listeners.click();
+  elements.scanSelectedEffects.listeners.click();
+  await Promise.resolve();
+
+  const scanCall = calls.find((call) => call.name === 'scanSelectedEffectParams');
+  assert.equal(JSON.stringify(scanCall.payload.effects), JSON.stringify([{ name: 'Deep Glow', matchName: 'Deep Glow' }]));
+});
+
 function createPanelElements() {
   const ids = [
     'languageSelect',
@@ -720,6 +785,8 @@ function createPanelElements() {
     'effectScanQuery',
     'effectSuggestionList',
     'effectScanStatus',
+    'effectScanFilter',
+    'effectStatusList',
     'refreshContext',
     'refreshPending',
     'chooseBridge',
@@ -729,6 +796,9 @@ function createPanelElements() {
     'clearPresetPaths',
     'scanEffectParams',
     'scanAllEffectParams',
+    'refreshEffectStatus',
+    'selectUnscannedEffects',
+    'scanSelectedEffects',
     'customMarker',
     'applyChecked',
     'discardPending',
@@ -740,6 +810,7 @@ function createPanelElements() {
     elements[id] = createElement(id);
   });
   elements.markerTarget.value = 'layer';
+  elements.effectScanFilter.value = 'all';
   return elements;
 }
 
@@ -869,6 +940,17 @@ function createI18n(initialLanguage = 'en') {
           noCustomPresetPaths: '暂无自定义预设路径。',
           customPresetPaths: '自定义预设路径',
           scannedPresetPaths: '已扫描路径',
+          effectStatusScanned: '已扫描',
+          effectStatusUnscanned: '未扫描',
+          effectStatusFailed: '失败',
+          effectStatusDetailScanned: '参数 {count} 个 | 上次扫描: {time}',
+          effectStatusDetailUnscanned: '尚无参数树缓存。',
+          effectStatusDetailFailed: '上次扫描失败: {error}',
+          effectStatusSummary: '插件名单: 共 {total} 个，已扫描 {scanned} 个，未扫描 {unscanned} 个，失败 {failed} 个。',
+          effectStatusNotLoaded: '尚未加载插件扫描名单。',
+          effectStatusEmpty: '没有匹配的插件。',
+          effectStatusNoneSelected: '请先勾选要扫描的插件。',
+          effectStatusLoadFailed: '插件扫描名单加载失败。',
           actionCountOne: '{count} 个动作',
           actionCountMany: '{count} 个动作',
           noPendingArchive: '暂无历史方案。',
@@ -898,6 +980,17 @@ function createI18n(initialLanguage = 'en') {
           noCustomPresetPaths: 'No custom preset paths.',
           customPresetPaths: 'Custom preset paths',
           scannedPresetPaths: 'Scanned paths',
+          effectStatusScanned: 'Scanned',
+          effectStatusUnscanned: 'Unscanned',
+          effectStatusFailed: 'Failed',
+          effectStatusDetailScanned: '{count} parameters | Last scan: {time}',
+          effectStatusDetailUnscanned: 'No parameter tree cache yet.',
+          effectStatusDetailFailed: 'Last scan failed: {error}',
+          effectStatusSummary: 'Plugin list: {total} total, {scanned} scanned, {unscanned} unscanned, {failed} failed.',
+          effectStatusNotLoaded: 'Plugin scan list not loaded.',
+          effectStatusEmpty: 'No matching plugins.',
+          effectStatusNoneSelected: 'Select plugins to scan first.',
+          effectStatusLoadFailed: 'Plugin scan list failed to load.',
           actionCountOne: '1 action',
           actionCountMany: '{count} actions',
           noPendingArchive: 'No plan history.',

@@ -1516,6 +1516,118 @@ AECreateContext.cleanEffectScanFiles = function (folder, effectInfo) {
   return removed;
 };
 
+AECreateContext.effectIdentityKey = function (effectInfo) {
+  return String((effectInfo && (effectInfo.matchName || effectInfo.name)) || '').toLowerCase();
+};
+
+AECreateContext.effectScanStatusRecords = function (effects, scans, failures) {
+  var output = [];
+  var effectList = effects || [];
+  var scanList = scans || [];
+  var failureList = failures || [];
+  for (var i = 0; i < effectList.length; i++) {
+    var effect = effectList[i];
+    var record = {
+      name: effect.name,
+      matchName: effect.matchName,
+      category: effect.category,
+      scanStatus: 'unscanned'
+    };
+    for (var scanIndex = 0; scanIndex < scanList.length; scanIndex++) {
+      if (!AECreateContext.effectScanMatchesEffect(scanList[scanIndex], effect)) continue;
+      record.scanStatus = 'scanned';
+      record.scannedAt = scanList[scanIndex].scannedAt || '';
+      record.scanOutputPath = scanList[scanIndex].outputPath || '';
+      record.parameterCount = scanList[scanIndex].parameterCount || 0;
+      record.truncated = scanList[scanIndex].truncated === true;
+      break;
+    }
+    if (record.scanStatus !== 'scanned') {
+      for (var failureIndex = 0; failureIndex < failureList.length; failureIndex++) {
+        if (!AECreateContext.effectInfoMatches(failureList[failureIndex], effect)) continue;
+        record.scanStatus = 'failed';
+        record.scanError = String(failureList[failureIndex].error || '');
+        break;
+      }
+    }
+    output.push(record);
+  }
+  return output;
+};
+
+AECreateContext.effectInfoMatches = function (left, right) {
+  if (!left || !right) return false;
+  var leftName = String(left.name || '').toLowerCase();
+  var leftMatchName = String(left.matchName || '').toLowerCase();
+  var rightName = String(right.name || '').toLowerCase();
+  var rightMatchName = String(right.matchName || '').toLowerCase();
+  return (!!leftMatchName && !!rightMatchName && leftMatchName === rightMatchName) ||
+    (!!leftName && !!rightName && leftName === rightName) ||
+    (!!leftMatchName && !!rightName && leftMatchName === rightName) ||
+    (!!leftName && !!rightMatchName && leftName === rightMatchName);
+};
+
+AECreateContext.selectedEffectsFromPayload = function (payload, effects) {
+  var selected = [];
+  var seen = {};
+  var items = payload && payload.effects && typeof payload.effects.length === 'number' ? payload.effects : [];
+  for (var i = 0; i < items.length; i++) {
+    var query = items[i] && (items[i].matchName || items[i].name || items[i].query);
+    if (!query) continue;
+    for (var effectIndex = 0; effectIndex < effects.length; effectIndex++) {
+      var effect = effects[effectIndex];
+      if (!AECreateContext.effectInfoMatches({ name: query, matchName: query }, effect)) continue;
+      var key = AECreateContext.effectIdentityKey(effect);
+      if (seen[key]) break;
+      seen[key] = true;
+      selected.push(effect);
+      break;
+    }
+  }
+  return selected;
+};
+
+AECreateContext.readEffectScanRecords = function () {
+  var records = [];
+  var folder = AECreateContext.effectParamsFolder();
+  var files = [];
+  try {
+    files = folder.getFiles('*.json');
+  } catch (error) {
+    return records;
+  }
+  for (var i = 0; i < files.length; i++) {
+    if (!(files[i] instanceof File)) continue;
+    try {
+      var scan = AECreateJSON.parse(AECreateBridge.readText(files[i]));
+      scan.outputPath = files[i].fsName;
+      records.push(scan);
+    } catch (parseError) {}
+  }
+  return records;
+};
+
+AECreateContext.readEffectScanFailures = function () {
+  var file = new File(AECreateBridge.bridgeFolder().fsName + '/effect-scan-report.json');
+  if (!file.exists) return [];
+  try {
+    var report = AECreateJSON.parse(AECreateBridge.readText(file));
+    return report && report.failed && typeof report.failed.length === 'number' ? report.failed : [];
+  } catch (error) {
+    return [];
+  }
+};
+
+AECreateContext.effectScanStatusSummary = function (records) {
+  var summary = { total: records.length, scanned: 0, unscanned: 0, failed: 0 };
+  for (var i = 0; i < records.length; i++) {
+    if (records[i].scanStatus === 'scanned') summary.scanned++;
+    else if (records[i].scanStatus === 'failed') summary.failed++;
+    else summary.unscanned++;
+  }
+  return summary;
+};
+
 AECreateContext.scanEffectParametersData = function (effectInfo, options) {
   var comp = AECreateContext.activeComp();
   if (!comp) AECreateBridge.fail('No active composition. Open a comp before scanning plugin parameters.');
@@ -1590,6 +1702,76 @@ AECreateBridge.listAvailableEffects = function () {
   try {
     var effects = AECreateContext.availableEffectsList();
     return AECreateBridge.respond({ ok: true, effects: effects });
+  } catch (error) {
+    return AECreateBridge.respond({ ok: false, error: String(error) });
+  }
+};
+
+AECreateBridge.listEffectScanStatus = function () {
+  try {
+    var effects = AECreateContext.availableEffectsList();
+    var records = AECreateContext.effectScanStatusRecords(
+      effects,
+      AECreateContext.readEffectScanRecords(),
+      AECreateContext.readEffectScanFailures()
+    );
+    return AECreateBridge.respond({
+      ok: true,
+      effects: records,
+      summary: AECreateContext.effectScanStatusSummary(records)
+    });
+  } catch (error) {
+    return AECreateBridge.respond({ ok: false, error: String(error) });
+  }
+};
+
+AECreateBridge.scanSelectedEffectParams = function (payloadText) {
+  try {
+    var payload = AECreateJSON.parse(payloadText || '{}');
+    payload.includePluginFiles = payload.includePluginFiles === true;
+    var effects = AECreateContext.availableEffectsList();
+    var selected = AECreateContext.selectedEffectsFromPayload(payload, effects);
+    if (!selected.length) AECreateBridge.fail('No plugins selected for scanning.');
+    var catalogPath = AECreateContext.writeEffectCatalog(effects);
+    var report = {
+      schemaVersion: 1,
+      scannedAt: new Date().toString(),
+      catalogPath: catalogPath,
+      requestedCount: selected.length,
+      scanned: [],
+      failed: []
+    };
+    for (var i = 0; i < selected.length; i++) {
+      try {
+        var scan = AECreateContext.scanEffectParametersData(selected[i], payload);
+        var outputPath = AECreateContext.writeEffectScan(scan);
+        report.scanned.push({
+          name: selected[i].name,
+          matchName: selected[i].matchName,
+          outputPath: outputPath,
+          workflow: scan.workflow,
+          parameterCount: scan.parameterCount,
+          truncated: scan.truncated
+        });
+      } catch (scanError) {
+        report.failed.push({
+          name: selected[i].name,
+          matchName: selected[i].matchName,
+          error: String(scanError)
+        });
+      }
+    }
+    var reportFile = new File(AECreateBridge.bridgeFolder().fsName + '/effect-scan-report.json');
+    AECreateBridge.writeText(reportFile, AECreateJSON.stringify(report));
+    return AECreateBridge.respond({
+      ok: true,
+      message: 'Scanned ' + report.scanned.length + ' selected plugins. Failed: ' + report.failed.length + '.',
+      catalogPath: catalogPath,
+      reportPath: reportFile.fsName,
+      scannedCount: report.scanned.length,
+      failedCount: report.failed.length,
+      requestedCount: selected.length
+    });
   } catch (error) {
     return AECreateBridge.respond({ ok: false, error: String(error) });
   }

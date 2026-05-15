@@ -45,6 +45,52 @@ test('effectScanMatchesEffect identifies stale scans for the same plugin', () =>
   }), false);
 });
 
+test('effectScanStatusRecords marks installed plugins as scanned unscanned or failed', () => {
+  const helpers = loadContextHelpers();
+  const records = helpers.effectScanStatusRecords([
+    { name: 'Trapcode Particular', matchName: 'tc Particular', category: 'RG Particles and 3D' },
+    { name: 'Deep Glow', matchName: 'Deep Glow', category: 'Plugin Everything' },
+    { name: 'Broken FX', matchName: 'Broken FX', category: 'Unstable' }
+  ], [{
+    scannedAt: '2026-05-15T10:00:00+08:00',
+    outputPath: 'C:/bridge/effect-params/tc-Particular.json',
+    parameterCount: 42,
+    truncated: false,
+    effect: { name: 'Trapcode Particular', matchName: 'tc Particular' }
+  }], [{
+    name: 'Broken FX',
+    matchName: 'Broken FX',
+    error: 'Unable to add effect.'
+  }]);
+
+  assert.equal(records[0].scanStatus, 'scanned');
+  assert.equal(records[0].scanOutputPath, 'C:/bridge/effect-params/tc-Particular.json');
+  assert.equal(records[0].parameterCount, 42);
+  assert.equal(records[1].scanStatus, 'unscanned');
+  assert.equal(records[2].scanStatus, 'failed');
+  assert.equal(records[2].scanError, 'Unable to add effect.');
+});
+
+test('selectedEffectsFromPayload resolves only checked plugins from the installed list', () => {
+  const helpers = loadContextHelpers();
+  const effects = [
+    { name: 'Trapcode Particular', matchName: 'tc Particular', category: 'RG Particles and 3D' },
+    { name: 'Deep Glow', matchName: 'Deep Glow', category: 'Plugin Everything' },
+    { name: 'Twitch', matchName: 'Twitch', category: 'Video Copilot' }
+  ];
+
+  const selected = helpers.selectedEffectsFromPayload({
+    effects: [
+      { matchName: 'Deep Glow' },
+      { name: 'Trapcode Particular' },
+      { matchName: 'Deep Glow' },
+      { matchName: 'Missing' }
+    ]
+  }, effects);
+
+  assert.equal(JSON.stringify(selected.map((effect) => effect.matchName)), JSON.stringify(['Deep Glow', 'tc Particular']));
+});
+
 test('effectParameterTree records writable metadata and match paths', () => {
   const helpers = loadContextHelpers();
   const property = {

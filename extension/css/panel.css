@@ -112,6 +112,71 @@ body {
   font-size: 11px;
 }
 
+.plugin-status-toolbar {
+  display: grid;
+  grid-template-columns: minmax(90px, 0.7fr) repeat(3, minmax(92px, 1fr));
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.effect-status-list {
+  display: grid;
+  gap: 6px;
+  max-height: 260px;
+  overflow-y: auto;
+  margin-bottom: 8px;
+}
+
+.effect-status-list:empty {
+  display: none;
+}
+
+.effect-status-item {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: start;
+  background: #202020;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  padding: 7px;
+}
+
+.effect-status-title {
+  font-weight: 700;
+}
+
+.effect-status-meta,
+.effect-status-detail {
+  color: #b9c8d8;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.effect-status-badge {
+  border: 1px solid #4a4a4a;
+  border-radius: 4px;
+  color: #f0f0f0;
+  font-size: 11px;
+  padding: 3px 6px;
+  white-space: nowrap;
+}
+
+.effect-status-badge.scanned {
+  border-color: #3c8f5b;
+  color: #8ee0a8;
+}
+
+.effect-status-badge.unscanned {
+  border-color: #6d6d6d;
+  color: #d0d0d0;
+}
+
+.effect-status-badge.failed {
+  border-color: #a05a5a;
+  color: #f0a0a0;
+}
+
 .section {
   border: 1px solid #3a3a3a;
   border-radius: 6px;

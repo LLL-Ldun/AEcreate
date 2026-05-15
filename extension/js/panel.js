@@ -8,7 +8,10 @@
     selectedArchiveId: null,
     language: i18n.loadLanguage(window.localStorage),
     availableEffects: [],
-    effectsLoaded: false
+    effectsLoaded: false,
+    effectScanStatus: [],
+    effectScanStatusLoaded: false,
+    selectedEffectKeys: {}
   };
 
   function requireElement(id) {
@@ -653,6 +656,93 @@
     setText('effectScanStatus', lines.join('\n'));
   }
 
+  function effectKey(effect) {
+    return String((effect && (effect.matchName || effect.name)) || '').toLowerCase();
+  }
+
+  function effectScanStatusLabel(status) {
+    if (status === 'scanned') return text('effectStatusScanned');
+    if (status === 'failed') return text('effectStatusFailed');
+    return text('effectStatusUnscanned');
+  }
+
+  function effectStatusFilterMatches(effect) {
+    var filter = requireElement('effectScanFilter').value || 'all';
+    return filter === 'all' || effect.scanStatus === filter;
+  }
+
+  function effectStatusQueryMatches(effect) {
+    var query = requireElement('effectScanQuery').value.replace(/^\s+|\s+$/g, '').toLowerCase();
+    return !query || effectSearchText(effect).indexOf(query) !== -1;
+  }
+
+  function renderEffectStatusList() {
+    var list = requireElement('effectStatusList');
+    list.innerHTML = '';
+    if (!state.effectScanStatusLoaded) {
+      setEmptyText('effectStatusList', 'effectStatusNotLoaded');
+      return;
+    }
+    var shown = 0;
+    state.effectScanStatus.forEach(function (effect) {
+      if (!effectStatusFilterMatches(effect) || !effectStatusQueryMatches(effect)) return;
+      var key = effectKey(effect);
+      var item = document.createElement('label');
+      item.className = 'effect-status-item';
+
+      var checkbox = document.createElement('input');
+      checkbox.setAttribute('type', 'checkbox');
+      checkbox.checked = state.selectedEffectKeys[key] === true;
+      checkbox.addEventListener('change', function () {
+        state.selectedEffectKeys[key] = checkbox.checked === true;
+      });
+
+      var body = document.createElement('span');
+      var title = document.createElement('span');
+      title.className = 'effect-status-title';
+      title.textContent = effect.name || effect.matchName || 'Unnamed effect';
+
+      var meta = document.createElement('span');
+      meta.className = 'effect-status-meta';
+      meta.textContent = [effect.matchName, effect.category].filter(Boolean).join(' | ');
+
+      var detail = document.createElement('span');
+      detail.className = 'effect-status-detail';
+      if (effect.scanStatus === 'scanned') {
+        detail.textContent = text('effectStatusDetailScanned')
+          .replace('{count}', String(effect.parameterCount || 0))
+          .replace('{time}', effect.scannedAt || '-');
+      } else if (effect.scanStatus === 'failed') {
+        detail.textContent = text('effectStatusDetailFailed').replace('{error}', effect.scanError || '');
+      } else {
+        detail.textContent = text('effectStatusDetailUnscanned');
+      }
+
+      var badge = document.createElement('span');
+      badge.className = 'effect-status-badge ' + (effect.scanStatus || 'unscanned');
+      badge.textContent = effectScanStatusLabel(effect.scanStatus);
+
+      body.appendChild(title);
+      body.appendChild(meta);
+      body.appendChild(detail);
+      item.appendChild(checkbox);
+      item.appendChild(body);
+      item.appendChild(badge);
+      list.appendChild(item);
+      shown++;
+    });
+    if (!shown) setEmptyText('effectStatusList', 'effectStatusEmpty');
+  }
+
+  function renderEffectScanSummary(summary) {
+    if (!summary) return;
+    setText('effectScanStatus', text('effectStatusSummary')
+      .replace('{total}', String(summary.total || 0))
+      .replace('{scanned}', String(summary.scanned || 0))
+      .replace('{unscanned}', String(summary.unscanned || 0))
+      .replace('{failed}', String(summary.failed || 0)));
+  }
+
   function effectSearchText(effect) {
     return [effect.name, effect.matchName, effect.category].join(' ').toLowerCase();
   }
@@ -708,6 +798,54 @@
     });
   }
 
+  function loadEffectScanStatus() {
+    bridge.call('listEffectScanStatus', {}).then(function (result) {
+      if (result.ok && result.effects) {
+        state.effectScanStatus = result.effects;
+        state.availableEffects = result.effects;
+        state.effectsLoaded = true;
+        state.effectScanStatusLoaded = true;
+        renderEffectSuggestions();
+        renderEffectStatusList();
+        renderEffectScanSummary(result.summary);
+      } else {
+        setText('effectScanStatus', result.error || text('effectStatusLoadFailed'));
+      }
+    });
+  }
+
+  function selectUnscannedEffects() {
+    state.effectScanStatus.forEach(function (effect) {
+      state.selectedEffectKeys[effectKey(effect)] = effect.scanStatus === 'unscanned';
+    });
+    renderEffectStatusList();
+  }
+
+  function selectedEffectPayload() {
+    var selected = [];
+    state.effectScanStatus.forEach(function (effect) {
+      if (state.selectedEffectKeys[effectKey(effect)] !== true) return;
+      selected.push({ name: effect.name, matchName: effect.matchName });
+    });
+    return selected;
+  }
+
+  function scanSelectedEffects() {
+    var selected = selectedEffectPayload();
+    if (!selected.length) {
+      setText('effectScanStatus', text('effectStatusNoneSelected'));
+      return;
+    }
+    bridge.call('scanSelectedEffectParams', {
+      effects: selected,
+      maxDepth: 8,
+      maxRecords: 12000
+    }).then(function (result) {
+      renderEffectScanResult(result);
+      if (result.ok) loadEffectScanStatus();
+    });
+  }
+
   function loadSettings() {
     bridge.call('getSettings', {}).then(function (result) {
       if (result.ok && result.settings) renderSettings(result.settings);
@@ -757,16 +895,30 @@
     });
   });
   requireElement('scanEffectParams').addEventListener('click', function () {
-    bridge.call('scanEffectParams', { query: requireElement('effectScanQuery').value }).then(renderEffectScanResult);
+    bridge.call('scanEffectParams', { query: requireElement('effectScanQuery').value }).then(function (result) {
+      renderEffectScanResult(result);
+      if (result.ok) loadEffectScanStatus();
+    });
   });
-  requireElement('effectScanQuery').addEventListener('focus', loadAvailableEffects);
+  requireElement('refreshEffectStatus').addEventListener('click', loadEffectScanStatus);
+  requireElement('selectUnscannedEffects').addEventListener('click', selectUnscannedEffects);
+  requireElement('scanSelectedEffects').addEventListener('click', scanSelectedEffects);
+  requireElement('effectScanFilter').addEventListener('change', renderEffectStatusList);
+  requireElement('effectScanQuery').addEventListener('focus', function () {
+    loadAvailableEffects();
+    if (!state.effectScanStatusLoaded) loadEffectScanStatus();
+  });
   requireElement('effectScanQuery').addEventListener('input', function () {
     if (!state.effectsLoaded) loadAvailableEffects();
     else renderEffectSuggestions();
+    renderEffectStatusList();
   });
   requireElement('scanAllEffectParams').addEventListener('click', function () {
     if (!confirm(text('scanAllEffectsConfirm'))) return;
-    bridge.call('scanAllEffectParams', { maxDepth: 8, maxRecords: 12000 }).then(renderEffectScanResult);
+    bridge.call('scanAllEffectParams', { maxDepth: 8, maxRecords: 12000 }).then(function (result) {
+      renderEffectScanResult(result);
+      if (result.ok) loadEffectScanStatus();
+    });
   });
   document.querySelectorAll('[data-marker]').forEach(function (button) {
     button.addEventListener('click', function () {
