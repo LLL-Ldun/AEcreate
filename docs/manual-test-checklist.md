@@ -55,6 +55,7 @@
 - [ ] Click the Plan History item's `Restore` button and confirm the archived plan becomes the current pending plan without a confirmation dialog.
 - [ ] Click the Plan History item's `Delete` button and confirm it is removed from Plan History without changing the current pending plan.
 - [ ] Apply one checked module.
+- [ ] Apply a pending plan whose plan and module `title` / `summary` fields use `{ "zh": "...", "en": "..." }`; confirm it is not rejected as missing title or summary.
 - [ ] Confirm the effect appears or updates on the selected layer.
 - [ ] Press Ctrl+Z once in AE and confirm the full applied module reverts.
 - [ ] Save the pending plan as a favorite.

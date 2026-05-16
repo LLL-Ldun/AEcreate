@@ -38,6 +38,19 @@ This document is public-facing and safe to push. It records shipped updates, vis
 
 ## Update History / 更新记录
 
+### 2026-05-16 - Localized Pending Plans Can Apply / 本地化待应用方案可执行
+Commit: `5e74d9e`
+
+中文：
+- 修复执行器校验只接受字符串 `title` / `summary` 的问题。面板已经支持 `{ zh, en }` 本地化文案，但点击 `Apply Checked` / `应用勾选` 时旧校验会把这类方案误判为无标题、无摘要。
+- 协议校验和 AE JSX 执行器现在都接受非空字符串或 `{ zh, en }` 本地化文本对象。
+- 执行日志和应用返回信息会把本地化模块名折算成可读文本，避免出现 `[object Object]`。
+
+English:
+- Fixed executor validation that only accepted string `title` / `summary` fields. The panel already supports `{ zh, en }` localized text, but `Apply Checked` previously rejected those plans as missing titles and summaries.
+- Protocol validation and the AE JSX executor now accept either non-empty strings or `{ zh, en }` localized text objects.
+- Apply logs and apply responses convert localized module names into readable text instead of `[object Object]`.
+
 ### 2026-05-16 - Faster Plugin List Refresh And Per-Plugin Scan Progress / 插件名单刷新加速与逐插件扫描进度
 Commit: `fab5dec`
 
