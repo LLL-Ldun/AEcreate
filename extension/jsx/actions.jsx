@@ -668,6 +668,23 @@ AECreateActions.applyLayerTiming = function (layer, action, comp) {
   if (typeof action.enabled === 'boolean') layer.enabled = action.enabled;
   if (typeof action.guideLayer === 'boolean') layer.guideLayer = action.guideLayer;
   if (typeof action.shy === 'boolean') layer.shy = action.shy;
+  AECreateActions.applyLayerSwitches(layer, action);
+};
+
+AECreateActions.setLayerBooleanSwitch = function (layer, propertyName, value) {
+  if (typeof value !== 'boolean') return;
+  try {
+    layer[propertyName] = value;
+  } catch (error) {}
+};
+
+AECreateActions.applyLayerSwitches = function (layer, action) {
+  AECreateActions.setLayerBooleanSwitch(layer, 'threeDLayer', action.threeDLayer);
+  AECreateActions.setLayerBooleanSwitch(layer, 'threeDLayer', action.threeD);
+  AECreateActions.setLayerBooleanSwitch(layer, 'collapseTransformation', action.collapseTransformation);
+  AECreateActions.setLayerBooleanSwitch(layer, 'collapseTransformation', action.collapseTransformations);
+  AECreateActions.setLayerBooleanSwitch(layer, 'motionBlur', action.motionBlur);
+  AECreateActions.setLayerBooleanSwitch(layer, 'frameBlending', action.frameBlending);
 };
 
 AECreateActions.setNativeLayerProperty = function (layer, groupName, propertyName, value) {

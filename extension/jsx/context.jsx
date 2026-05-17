@@ -848,7 +848,7 @@ AECreateContext.visualWorkflowLibrary = function () {
       'the user explicitly asks for separate layer control',
       'the particle plugin cannot use the keyed layer as a layer emitter or layer map'
     ]),
-    parameterGroups: ['keyed-matte-source', 'sample-color', 'key-tolerance', 'matte-softness', 'particle-emitter', 'particle-life-size', 'turbulence', 'glow-composite'],
+    parameterGroups: ['keyed-matte-source', 'sample-color', 'key-tolerance', 'matte-softness', 'particle-emitter', 'layer-emitter-3d-switches', 'particle-life-size', 'turbulence', 'glow-composite'],
     requiredPlanningSteps: [{
       id: 'sample-target-color',
       description: 'Identify the visible source color or edge region that should drive the effect, such as a pink blade edge.'
@@ -865,6 +865,10 @@ AECreateContext.visualWorkflowLibrary = function () {
       actionTypes: ['addSolidLayer', 'addEffect', 'setProperty', 'setKeyframes'],
       description: 'Create one ADD/SCREEN solid carrier for the particle plugin and place it above the footage.'
     }, {
+      id: 'prepare-layer-emitter-switches',
+      actionTypes: ['duplicateLayer', 'addSolidLayer', 'setLayerProperties', 'setProperty'],
+      description: 'For particle Layer Emitter workflows, enable 3D layer switches on the keyed source and particle carrier, enable Collapse Transformations when the plugin needs linked 3D layer transform data, and constrain emitter size so the keyed source drives emission instead of the full comp.'
+    }, {
       id: 'connect-matte-to-particles',
       actionTypes: ['setProperty'],
       description: 'When the particle plugin exposes a Layer/Layer RGB/Layer Emitter/Layer Map control, set that property from the keyed source layer reference; otherwise approximate with an emitter path placed on the keyed edge.'
@@ -873,6 +877,8 @@ AECreateContext.visualWorkflowLibrary = function () {
       'A request that says select/pick/key the existing color before particles must not be implemented as only manually positioned particles.',
       'The keyed duplicate is a source/matte layer, not another similar particle layer; it may be hidden/guide/non-rendering when the downstream plugin can still read it.',
       'Prefer one keyed source layer plus one particle carrier layer. Add glow on the particle carrier or keyed source only when needed for the requested look.',
+      'For Trapcode Particular Layer Emitter or similar layer-source particle workflows, plan threeDLayer and Collapse Transformations switches on the keyed source and carrier before linking the source layer.',
+      'If a layer-emitter particle result spreads across the full comp, first verify the Layer/RGB source reference and constrain emitter size or layer sampling before adding more particle layers.',
       'Expose the sampled color, key tolerance/softness, particle rate, emitter path, turbulence, life, size, and glow strength as user-editable parameters when practical.'
     ],
     recommendedActionTypes: ['duplicateLayer', 'addEffect', 'setProperty', 'setKeyframes', 'addSolidLayer', 'setLayerProperties'],

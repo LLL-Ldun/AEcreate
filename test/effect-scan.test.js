@@ -314,9 +314,12 @@ test('visualWorkflowLibrary teaches color-keyed edge particles as a preprocess-p
   assert.ok(keyedParticles.matchTokens.includes('刀刃'));
   assert.ok(Array.isArray(keyedParticles.parameterGroups));
   assert.ok(keyedParticles.parameterGroups.includes('keyed-matte-source'));
+  assert.ok(keyedParticles.parameterGroups.includes('layer-emitter-3d-switches'));
   assert.ok(keyedParticles.recommendedActionTypes.includes('duplicateLayer'));
   assert.ok(keyedParticles.requiredPlanningSteps.map((step) => step.id).includes('isolate-key-color'));
+  assert.ok(keyedParticles.requiredPlanningSteps.map((step) => step.id).includes('prepare-layer-emitter-switches'));
   assert.ok(keyedParticles.requiredPlanningSteps.map((step) => step.id).includes('connect-matte-to-particles'));
+  assert.ok(keyedParticles.planningRules.some((rule) => /3D|Collapse|collapse/.test(rule)));
 });
 
 test('pluginWorkflow includes tutorial-derived plugin usage families', () => {

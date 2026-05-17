@@ -689,3 +689,93 @@ test('applyModule can duplicate the target layer as a keyed source and reference
     'solidEffect'
   ]);
 });
+
+test('layer workflow actions can enable 3D switches for Particular layer emitters', () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', 'extension', 'jsx', 'actions.jsx'), 'utf8');
+
+  class CompItem {}
+  const context = vm.createContext({
+    AECreateBridge: {
+      respond(object) {
+        return JSON.stringify(object);
+      },
+      fail(message) {
+        throw new Error(message);
+      }
+    },
+    app: { project: { activeItem: null } },
+    CompItem,
+    Error,
+    String,
+    isFinite,
+    Math
+  });
+  context.AECreateJSON = vm.runInContext('JSON', context);
+  vm.runInContext(source, context, { filename: 'actions.jsx' });
+
+  const result = vm.runInContext(`
+    (function () {
+      var keyedLayer = {
+        name: '',
+        index: 2,
+        duplicate: null,
+        property: function (name) {
+          if (name === 'ADBE Transform Group') return { property: function () { return { setValue: function () {} }; } };
+          return null;
+        },
+        moveBefore: function () {}
+      };
+      var targetLayer = {
+        name: 'canju.mp4',
+        index: 1,
+        duplicate: function () {
+          return keyedLayer;
+        }
+      };
+      var solidLayer = {
+        name: '',
+        property: function (name) {
+          if (name === 'ADBE Transform Group') return { property: function () { return { setValue: function () {} }; } };
+          return null;
+        },
+        moveBefore: function () {}
+      };
+      var comp = new CompItem();
+      comp.width = 1280;
+      comp.height = 720;
+      comp.pixelAspect = 1;
+      comp.duration = 20;
+      comp.layers = {
+        addSolid: function (color, name) {
+          solidLayer.name = name;
+          return solidLayer;
+        }
+      };
+
+      AECreateActions.applyModule(targetLayer, {
+        id: 'm1',
+        title: 'Layer emitter 3D prep',
+        summary: 'Prepare source and carrier layer switches.',
+        actions: [
+          { type: 'duplicateLayer', ref: 'source', name: 'AEcreate source', threeDLayer: true, collapseTransformation: true },
+          { type: 'addSolidLayer', ref: 'particles', name: 'AEcreate particles', color: [0, 0, 0], threeDLayer: true, collapseTransformation: true },
+          { type: 'setLayerProperties', targetRef: 'particles', motionBlur: true }
+        ]
+      }, 0, { comp: comp, targetLayer: targetLayer, layersByRef: {} });
+
+      return {
+        sourceThreeDLayer: keyedLayer.threeDLayer,
+        sourceCollapseTransformation: keyedLayer.collapseTransformation,
+        particleThreeDLayer: solidLayer.threeDLayer,
+        particleCollapseTransformation: solidLayer.collapseTransformation,
+        particleMotionBlur: solidLayer.motionBlur
+      };
+    })()
+  `, context);
+
+  assert.equal(result.sourceThreeDLayer, true);
+  assert.equal(result.sourceCollapseTransformation, true);
+  assert.equal(result.particleThreeDLayer, true);
+  assert.equal(result.particleCollapseTransformation, true);
+  assert.equal(result.particleMotionBlur, true);
+});
