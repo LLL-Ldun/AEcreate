@@ -867,7 +867,7 @@ AECreateContext.visualWorkflowLibrary = function () {
     }, {
       id: 'prepare-layer-emitter-switches',
       actionTypes: ['duplicateLayer', 'addSolidLayer', 'setLayerProperties', 'setProperty'],
-      description: 'For particle Layer Emitter workflows, enable 3D layer switches on the keyed source and particle carrier, enable Collapse Transformations when the plugin needs linked 3D layer transform data, and constrain emitter size so the keyed source drives emission instead of the full comp.'
+      description: 'For particle Layer Emitter workflows, keep the keyed source 2D by default. Only enable 3D on the referenced layer when the emitter must relay linked 3D layer transform data, enable Collapse Transformations in that case, and constrain emitter size so the keyed source drives emission instead of the full comp.'
     }, {
       id: 'connect-matte-to-particles',
       actionTypes: ['setProperty'],
@@ -877,7 +877,7 @@ AECreateContext.visualWorkflowLibrary = function () {
       'A request that says select/pick/key the existing color before particles must not be implemented as only manually positioned particles.',
       'The keyed duplicate is a source/matte layer, not another similar particle layer; it may be hidden/guide/non-rendering when the downstream plugin can still read it.',
       'Prefer one keyed source layer plus one particle carrier layer. Add glow on the particle carrier or keyed source only when needed for the requested look.',
-      'For Trapcode Particular Layer Emitter or similar layer-source particle workflows, plan threeDLayer and Collapse Transformations switches on the keyed source and carrier before linking the source layer.',
+      'For Trapcode Particular Layer Emitter or similar layer-source particle workflows, keep the keyed source 2D by default and only plan threeDLayer plus Collapse Transformations when the source itself must relay 3D transform data.',
       'If a layer-emitter particle result spreads across the full comp, first verify the Layer/RGB source reference and constrain emitter size or layer sampling before adding more particle layers.',
       'Expose the sampled color, key tolerance/softness, particle rate, emitter path, turbulence, life, size, and glow strength as user-editable parameters when practical.'
     ],

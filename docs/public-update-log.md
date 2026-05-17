@@ -41,12 +41,12 @@ This document is public-facing and safe to push. It records shipped updates, vis
 ### 2026-05-17 - Layer Emitter 3D Switch Workflow / 图层发射器 3D 开关工作流
 
 中文：
-- 补充 `color-keyed-edge-particles` 视觉工作流：当 Particular 等粒子插件使用 Layer Emitter/图层发射器引用扣色源时，工作流现在明确要求准备扣色源层和粒子承载层的 3D 图层开关，并在需要读取关联 3D 图层变换时打开 Collapse Transformations。
+- 补充 `color-keyed-edge-particles` 视觉工作流：当 Particular 等粒子插件使用 Layer Emitter/图层发射器引用扣色源时，工作流现在默认保持扣色源为 2D；只有在需要把关联 3D 图层变换传给粒子时，才打开对应 3D 图层开关并按需启用 Collapse Transformations。
 - 执行器现在支持在结构化图层动作里设置 `threeDLayer`、`collapseTransformation`、`motionBlur` 和 `frameBlending`，避免方案只能创建图层却不能打开 AE 图层开关。
 - 工作流说明增加排查规则：如果粒子从全画面随机散开，应先检查 Layer/RGB 引用和发射器尺寸约束，再考虑增加图层或叠加效果。
 
 English:
-- Expanded the `color-keyed-edge-particles` visual workflow. When particle plugins such as Particular use a Layer Emitter to read a keyed source, the workflow now requires 3D layer switch preparation on both the keyed source and particle carrier, plus Collapse Transformations when linked 3D layer transform data is needed.
+- Expanded the `color-keyed-edge-particles` visual workflow. When particle plugins such as Particular use a Layer Emitter to read a keyed source, the workflow now keeps the keyed source 2D by default and only enables 3D layer switches plus Collapse Transformations when linked 3D layer transform data is actually needed.
 - The structured executor now supports `threeDLayer`, `collapseTransformation`, `motionBlur`, and `frameBlending` on layer actions, so generated plans can actually enable AE layer switches.
 - The workflow docs now include the full-comp particle spread diagnostic: verify Layer/RGB references and emitter-size constraints before adding extra layers or stacked effects.
 

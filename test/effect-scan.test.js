@@ -322,6 +322,20 @@ test('visualWorkflowLibrary teaches color-keyed edge particles as a preprocess-p
   assert.ok(keyedParticles.planningRules.some((rule) => /3D|Collapse|collapse/.test(rule)));
 });
 
+test('visualWorkflowLibrary keeps layer-emitter 2D by default unless 3D relay is needed', () => {
+  const helpers = loadContextHelpers();
+
+  const workflows = helpers.visualWorkflowLibrary();
+  const keyedParticles = workflows.find((entry) => entry.id === 'color-keyed-edge-particles');
+  const prepareStep = keyedParticles.requiredPlanningSteps.find((step) => step.id === 'prepare-layer-emitter-switches');
+
+  assert.ok(prepareStep);
+  assert.ok(/2D/.test(prepareStep.description));
+  assert.ok(/3D/.test(prepareStep.description));
+  assert.ok(keyedParticles.planningRules.some((rule) => /2D/.test(rule)));
+  assert.ok(keyedParticles.planningRules.some((rule) => /Collapse/.test(rule)));
+});
+
 test('pluginWorkflow includes tutorial-derived plugin usage families', () => {
   const helpers = loadContextHelpers();
   const scenarios = [{

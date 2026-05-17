@@ -33,7 +33,7 @@ AEcreate exports workflow metadata so Codex does not treat scanned plugin parame
 
 ### 视觉目标 workflow
 
-- `color-keyed-edge-particles`：先取样/扣出目标颜色或刀刃边缘，再创建粒子承载层并引用扣色源。使用 Particular 等 Layer Emitter 时，扣色源层和粒子承载层需要按插件要求打开 3D 图层开关；当插件要读取关联 3D 图层变换时，也要打开 Collapse Transformations，并优先约束发射器大小，避免粒子从全画面散开。
+- `color-keyed-edge-particles`：先取样/扣出目标颜色或刀刃边缘，再创建粒子承载层并引用扣色源。使用 Particular 等 Layer Emitter 时，默认保持扣色源为 2D；只有当源层本身需要把 3D 变换传给粒子发射时，才打开对应 3D 图层开关并在需要时启用 Collapse Transformations，同时优先约束发射器大小，避免粒子从全画面散开。
 - `short-impact-adjustment-stack`：击杀点、卡点、冲击、抖动、发光和短促模糊优先合并到一个调整层。
 - `retime-twixtor-speed-ramp`：变速、回溯、补帧优先作用在 source 层，必要时复制或预合成保护素材。
 - `saber-path-glow`：路径光、能量线、刀刃描边发光要先确定 mask/path 来源。
@@ -57,7 +57,7 @@ When AE context or plugin parameters are scanned, AEcreate emits workflow metada
 - Minimum layers first: one visual goal should not automatically become several similar solids, adjustment layers, lights, or nulls.
 - Parameter trees say which controls exist; workflow entries say how a plugin should be used in AE.
 - Requests based on an existing color, edge, blade, UI glow, or matte must consult the visual workflow library before particle actions are generated.
-- Layer Emitter particle workflows such as Particular must prepare the keyed source and particle carrier layer switches, including 3D layer switches and Collapse Transformations when linked 3D layer transform data is needed. If particles spread across the whole comp, verify the layer/RGB source and constrain emitter size before adding more particle layers.
+- Layer Emitter particle workflows such as Particular should keep the keyed source 2D by default and only enable 3D layer switches plus Collapse Transformations when the source itself must relay 3D transform data. If particles spread across the whole comp, verify the layer/RGB source and constrain emitter size before adding more particle layers.
 - Helper layers are created only when tracking, source protection, different masks/blend scopes, a real plugin workflow, or explicit user control requires them.
 - Unknown plugins or visual goals are preserved as unknown/incomplete until official docs, official tutorials, or high-quality tutorials are reviewed and promoted into the library.
 
