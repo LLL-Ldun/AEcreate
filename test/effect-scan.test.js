@@ -411,6 +411,10 @@ test('visualWorkflowLibrary exposes tutorial-derived visual workflow families', 
     'depth-map-smoke-composite',
     'tracked-light-or-overlay',
     'texture-plasma-glow-overlay',
+    'beat-synced-entry-flash',
+    'lens-compensation-white-flash',
+    'looks-postgrade-atmosphere',
+    'three-d-orbit-wrap-transition',
     'transition-preset-two-shot'
   ];
 

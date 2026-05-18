@@ -70,6 +70,8 @@ The first built-in set covers particle carriers, adjustment impact stacks, sourc
 
 The first visual-goal set covers keyed edge particles, short impact stacks, Twixtor speed ramps, Saber path glow, flare hit feedback, ripple dissolves, depth-map smoke composites, tracked overlays, texture/plasma overlays, and two-shot preset transitions.
 
+Second-pass tutorial coverage adds beat-synced entry flashes, lens-compensation white flashes, Looks/post-grade atmosphere stacks, and 3D orbit/wrap transitions.
+
 
 ## ???????
 

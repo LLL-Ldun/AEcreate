@@ -38,6 +38,22 @@ This document is public-facing and safe to push. It records shipped updates, vis
 
 ## Update History / 更新记录
 
+### 2026-05-18 - Second-Pass Workflow Gap Fill / workflow 二次查漏补缺
+
+English:
+
+- Added four tutorial-derived visual workflow families: `beat-synced-entry-flash`, `lens-compensation-white-flash`, `looks-postgrade-atmosphere`, and `three-d-orbit-wrap-transition`.
+- Expanded `adjustment-impact-layer` so short beat flashes, whiteout punches, chroma drift, and heat distortion are covered as short adjustment-stack workflows.
+- Extended workflow tests so the new families are exported through `visualWorkflowLibrary`.
+- Validation: `npm test` passed with 88 tests.
+
+中文：
+
+- 新增 4 个从教程流程中沉淀出的视觉 workflow 家族：`beat-synced-entry-flash`、`lens-compensation-white-flash`、`looks-postgrade-atmosphere`、`three-d-orbit-wrap-transition`。
+- 补强 `adjustment-impact-layer` 说明，使短节拍闪光、白场冲击、色度漂移和热变形被归入短调整层栈流程。
+- 扩展 workflow 测试，确认新家族会随 `visualWorkflowLibrary` 导出。
+- 验证：`npm test` 通过，共 88 项测试。
+
 ### 2026-05-18 - Workflow Learning Coverage In Plugin List / workflow 学习覆盖状态显示
 
 English:

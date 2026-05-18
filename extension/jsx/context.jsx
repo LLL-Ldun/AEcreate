@@ -835,6 +835,7 @@ AECreateContext.effectWorkflowLibrary = function () {
     recommendedActionTypes: ['addAdjustmentLayer', 'addEffect', 'setProperty', 'setKeyframes', 'setExpression', 'setLayerProperties'],
     notes: [
       'Create a trimmed adjustment layer above the footage for non-destructive impact, glow, blur, shake, color, or glitch effects.',
+      'The same stack also covers short beat-synced flashes, whiteout-style punches, chroma drift, heat distortion, and other fast post-impact treatments when the marker timing is short.',
       'Keep the original footage layer unchanged unless the user asks for source-layer treatment.'
     ],
     onlineResearch: {
@@ -1315,6 +1316,179 @@ AECreateContext.visualWorkflowLibrary = function () {
       'Expose noise scale, evolution speed, color, glow, and blend mode.'
     ],
     recommendedActionTypes: ['addSolidLayer', 'addEffect', 'setProperty', 'setKeyframes', 'setExpression', 'setLayerProperties'],
+    onlineResearch: optionalResearch()
+  }, {
+    id: 'beat-synced-entry-flash',
+    label: 'Beat Synced Entry Flash',
+    matchTokens: ['beat marker', 'beat sync', 'beat synced', 'card\u70b9', '\u5361\u70b9', '\u5165\u573a\u95ea\u5149', '\u8282\u62cd\u95ea\u5149', 'beat flash', 'impact flash', 'flash hit'],
+    goalType: 'beat-synced-impact',
+    defaultPlugins: [{
+      role: 'impact-distortion',
+      preferredEffects: [
+        { name: 'Twitch', matchName: 'Twitch' },
+        { name: 'S_Shake', matchName: 'S_Shake' }
+      ]
+    }, {
+      role: 'impact-glow',
+      preferredEffects: [
+        { name: 'Deep Glow', matchName: 'PEDG' },
+        { name: 'Glow', matchName: 'ADBE Glow' }
+      ],
+      optional: true
+    }],
+    layerPolicy: minimumLayerPolicy(1, [
+      'different beats need independent timing',
+      'user explicitly asks for separate layer control',
+      'flash and decay must be separated from source retime or source layer treatment'
+    ]),
+    parameterGroups: ['beat-marker', 'flash-rise', 'flash-decay', 'scale-punch', 'glow-punch', 'opacity-punch'],
+    requiredPlanningSteps: [{
+      id: 'resolve-beat-marker',
+      actionTypes: ['setKeyframes'],
+      description: 'Resolve the beat or hit marker first so the flash timing follows the music or kill beat.'
+    }, {
+      id: 'create-flash-adjustment',
+      actionTypes: ['addAdjustmentLayer', 'setLayerProperties'],
+      description: 'Create one trimmed adjustment layer for the flash and punch stack instead of spreading the hit across multiple similar layers.'
+    }, {
+      id: 'keyframe-flash-punch',
+      actionTypes: ['addEffect', 'setProperty', 'setKeyframes'],
+      description: 'Keyframe the rise, intensity, and decay so the flash peaks on the beat and falls back quickly.'
+    }],
+    planningRules: [
+      'Keep beat-synced flashes short and tied to an explicit marker span.',
+      'Do not use this family for long-duration grade changes or source retime.',
+      'Expose beat marker, rise, decay, intensity, scale, and opacity as editable parameters.'
+    ],
+    recommendedActionTypes: ['addAdjustmentLayer', 'addEffect', 'setProperty', 'setKeyframes', 'setExpression', 'setLayerProperties'],
+    onlineResearch: optionalResearch()
+  }, {
+    id: 'lens-compensation-white-flash',
+    label: 'Lens Compensation White Flash',
+    matchTokens: ['optical compensation', 'white flash', 'whiteout', 'bokeh', 'bokeh flash', 'whiteout flash', '\u5149\u5b66\u8865\u507f', '\u767d\u95ea', '\u767d\u573a', '\u7206\u95ea', '\u955c\u5934\u8865\u507f'],
+    goalType: 'lens-flash-compensation',
+    defaultPlugins: [{
+      role: 'flare-or-bloom',
+      preferredEffects: [
+        { name: 'Optical Flares', matchName: 'Optical Flares' },
+        { name: 'Deep Glow', matchName: 'PEDG' }
+      ]
+    }, {
+      role: 'soften-return',
+      preferredEffects: [
+        { name: 'Glow', matchName: 'ADBE Glow' },
+        { name: 'Fast Box Blur', matchName: 'ADBE Fast Box Blur' }
+      ],
+      optional: true
+    }],
+    layerPolicy: minimumLayerPolicy(1, [
+      'the flash must return to the source instead of staying blown out',
+      'user explicitly asks for separate layer control',
+      'tracked position or masked source needs a helper'
+    ]),
+    parameterGroups: ['source-center', 'flash-radius', 'brightness', 'bokeh-size', 'return-rate', 'blend-mode'],
+    requiredPlanningSteps: [{
+      id: 'choose-flash-center',
+      actionTypes: ['setLayerProperties'],
+      description: 'Choose the light source, hit point, or frame center that should drive the white flash.'
+    }, {
+      id: 'create-lens-flash-carrier',
+      actionTypes: ['addSolidLayer', 'addAdjustmentLayer', 'addEffect'],
+      description: 'Create one additive carrier or adjustment layer for the bloom/whiteout effect instead of painting the whole frame.'
+    }, {
+      id: 'animate-whiteout-return',
+      actionTypes: ['setProperty', 'setKeyframes'],
+      description: 'Animate the flash outward and then back down so the shot returns to the original image.'
+    }],
+    planningRules: [
+      'Do not leave the entire frame permanently white.',
+      'Keep brightness, radius, and return curve editable.',
+      'Use a carrier or adjustment layer rather than replacing the source image.'
+    ],
+    recommendedActionTypes: ['addSolidLayer', 'addAdjustmentLayer', 'addEffect', 'setProperty', 'setKeyframes', 'setLayerProperties'],
+    onlineResearch: optionalResearch()
+  }, {
+    id: 'looks-postgrade-atmosphere',
+    label: 'Looks Post-Grade Atmosphere',
+    matchTokens: ['looks', 'magic bullet looks', 'color grade', 'color grading', '\u8c03\u8272', '\u6c1b\u56f4', '\u53d1\u5149\u6c1b\u56f4', '\u8fb9\u7f18\u5149', '\u66dd\u5149', '\u8272\u6e29', 'post grade'],
+    goalType: 'look-stack',
+    defaultPlugins: [{
+      role: 'grade-base',
+      preferredEffects: [
+        { name: 'Magic Bullet Looks', matchName: 'Magic Bullet Looks' },
+        { name: 'Colorista', matchName: 'Colorista' }
+      ]
+    }, {
+      role: 'grade-support',
+      preferredEffects: [
+        { name: 'Deep Glow', matchName: 'PEDG' },
+        { name: 'Glow', matchName: 'ADBE Glow' }
+      ],
+      optional: true
+    }],
+    layerPolicy: minimumLayerPolicy(1, [
+      'the look must remain reversible',
+      'user explicitly asks for separate layer control',
+      'the grading stack should not alter source timing'
+    ]),
+    parameterGroups: ['base-exposure', 'temperature', 'contrast', 'saturation', 'glow-bloom', 'edge-light', 'tone-curve'],
+    requiredPlanningSteps: [{
+      id: 'normalize-base-shot',
+      actionTypes: ['setProperty', 'setLayerProperties'],
+      description: 'Normalize exposure and color balance before the look stack is applied.'
+    }, {
+      id: 'apply-look-stack',
+      actionTypes: ['addAdjustmentLayer', 'addEffect'],
+      description: 'Apply the grade stack on a trimmed adjustment layer so the base footage stays editable.'
+    }, {
+      id: 'shape-atmosphere',
+      actionTypes: ['setProperty', 'setKeyframes'],
+      description: 'Tune glow, edge light, temperature, and contrast so the atmosphere matches the scene.'
+    }],
+    planningRules: [
+      'Treat Looks as a post-grade stack, not the final purpose of the shot by itself.',
+      'Keep exposure, temperature, and glow controls editable.',
+      'Use one trimmed grade layer unless the user explicitly wants split controls.'
+    ],
+    recommendedActionTypes: ['addAdjustmentLayer', 'addEffect', 'setProperty', 'setKeyframes', 'setLayerProperties'],
+    onlineResearch: optionalResearch()
+  }, {
+    id: 'three-d-orbit-wrap-transition',
+    label: '3D Orbit Wrap Transition',
+    matchTokens: ['3D orbit', 'orbit transition', '\u73af\u7ed5', '\u753b\u4e2d\u753b', '\u5e73\u9762\u5c55\u5f00', 'plane transition', '\u5efa\u7b51\u8f6c\u573a', 'wrap transition', '\u65cb\u8f6c\u8f6c\u573a', '3D\u8d34\u5408'],
+    goalType: 'three-d-orbit-transition',
+    defaultPlugins: [{
+      role: '3d-layout',
+      preferredEffects: [
+        { name: 'Camera Layer', matchName: 'ADBE Camera Layer' },
+        { name: 'Null Layer', matchName: 'ADBE Null Layer' }
+      ]
+    }],
+    layerPolicy: minimumLayerPolicy(3, [
+      'foreground and background planes need independent motion',
+      'user explicitly asks for separate layer control',
+      'camera or 3D relay requires precompose and separate planes'
+    ]),
+    parameterGroups: ['foreground-plane', 'background-plane', 'camera-motion', 'plane-depth', 'perspective', 'border-rounding', 'transition-span'],
+    requiredPlanningSteps: [{
+      id: 'precompose-planes',
+      actionTypes: ['duplicateLayer', 'setLayerProperties'],
+      description: 'Precompose the front and back shots or planes so each can move independently.'
+    }, {
+      id: 'enable-3d-layout',
+      actionTypes: ['setLayerProperties', 'setProperty'],
+      description: 'Enable 3D switches or camera/null helpers only where the orbit transition needs real perspective motion.'
+    }, {
+      id: 'animate-orbit-wrap',
+      actionTypes: ['setKeyframes', 'setExpression'],
+      description: 'Animate the orbit, wrap, scale, and reveal so the shot opens or rotates through the scene.'
+    }],
+    planningRules: [
+      'Do not collapse a 3D orbit transition into one adjustment layer by default.',
+      'Keep front/back planes explicit so the perspective can be edited later.',
+      'Expose camera motion, plane depth, border rounding, and transition span.'
+    ],
+    recommendedActionTypes: ['duplicateLayer', 'addSolidLayer', 'setLayerProperties', 'setProperty', 'setKeyframes', 'setExpression'],
     onlineResearch: optionalResearch()
   }, {
     id: 'transition-preset-two-shot',
