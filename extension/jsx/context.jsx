@@ -713,11 +713,14 @@ AECreateContext.effectWorkflowLibrary = function () {
     },
     carrierLayer: null,
     helperLayers: [],
-    parameterGroups: ['matte-isolation', 'sample-color', 'tolerance', 'softness', 'spill-cleanup', 'alpha-output'],
+    parameterGroups: ['matte-isolation', 'sample-color', 'tolerance', 'softness', 'spill-cleanup', 'alpha-output', 'key-color', 'key-similarity', 'keep-color', 'keep-similarity', 'matte-view-output', 'matte-cleanup', 'roi-and-mocha-mask'],
     recommendedActionTypes: ['duplicateLayer', 'addEffect', 'setProperty', 'setKeyframes', 'setLayerProperties'],
     notes: [
       'Use keying effects as source or matte preprocessors, not as final visual effects by themselves when the user asks for edge-driven particles or composites.',
-      'Keep sampled color, tolerance, softness, and matte cleanup editable.'
+      'Keep sampled color, tolerance, softness, and matte cleanup editable.',
+      'For BCC Two Way Key, separate the Key Color/Similarity removal range from the Keep Color/Similarity restoration range so foreground detail can be protected.',
+      'Use Matte or Key Output/View modes while tuning the matte, then switch back to the needed downstream alpha or composite output.',
+      'Use ROI, Pixel Chooser, or Mocha Mask style controls to limit the key before feeding particles or other downstream effects.'
     ],
     onlineResearch: {
       status: 'optional',
@@ -795,14 +798,18 @@ AECreateContext.effectWorkflowLibrary = function () {
       purpose: 'position-or-expression-control',
       optional: true
     }],
-    parameterGroups: ['emitter-position', 'particle-rate', 'particle-life', 'particle-size', 'velocity', 'turbulence', 'color-over-life', 'aux-system-or-trails', 'glow-composite'],
+    parameterGroups: ['emitter-position', 'particle-rate', 'particle-life', 'particle-size', 'velocity', 'turbulence', 'color-over-life', 'aux-system-or-trails', 'glow-composite', 'multi-system-routing', 'layer-maps-color-alpha-luma', 'environment-air-turbulence', 'physics-simulation', 'rendering-motion-blur', '3d-model-emitter-source'],
     recommendedActionTypes: ['addSolidLayer', 'addEffect', 'setProperty', 'setKeyframes', 'setExpression', 'setLayerProperties'],
     notes: [
       'Create one carrier solid above footage and apply the particle/generator effect to that carrier.',
       'Use ADD or SCREEN when the effect should overlay the original video.',
       'Do not split one visual idea into several similar particle carrier layers by default; combine body, trail, glow, and spark accents into the fewest effect instances the plugin can support.',
       'Use light/null helpers only when the user asks for explicit helper control or the plugin workflow requires them.',
-      'If the visual goal says particles should come from an existing color, edge, matte, blade edge, UI glow, or keyed region, consult the visual workflow library before generating actions; do not skip the keyed source/matte preparation step.'
+      'If the visual goal says particles should come from an existing color, edge, matte, blade edge, UI glow, or keyed region, consult the visual workflow library before generating actions; do not skip the keyed source/matte preparation step.',
+      'Trapcode Particular System controls can hold multiple emitter systems in one effect, so prefer one Particular instance before adding parallel carrier solids.',
+      'Use Particular Layer Maps when particle color, alpha, size, or behavior should be driven by a source layer color, lightness, or alpha map.',
+      'Use Environment Air Turbulence and Physics Simulation controls for drifting or fluid-looking turbulence instead of duplicating similar particle layers.',
+      'Use 3D Model Emitter workflows only when the model or source layer is intentionally acting as the particle source; keep that source visually hidden only if the plugin can still read it.'
     ],
     onlineResearch: {
       status: 'optional',
@@ -863,12 +870,16 @@ AECreateContext.effectWorkflowLibrary = function () {
     },
     carrierLayer: null,
     helperLayers: [],
-    parameterGroups: ['retime-speed', 'frame-interpolation', 'motion-vector-quality', 'source-frame-rate'],
+    parameterGroups: ['retime-speed', 'frame-interpolation', 'motion-vector-quality', 'source-frame-rate', 'frame-rate-conversion', 'motion-blur-control', 'cut-marking', 'object-separation', 'track-point-guidance', 'spline-guidance', 'matte-guidance', 'motion-vector-import-export'],
     recommendedActionTypes: ['addEffect', 'setProperty', 'setKeyframes', 'setExpression'],
     notes: [
       'Apply retime effects to the footage/precomp layer being retimed.',
       'Prefer duplicating or precomping source footage when the edit should remain reversible.',
-      'Do not default to adjustment layers for source timing effects.'
+      'Do not default to adjustment layers for source timing effects.',
+      'For Twixtor, set source frame rate and speed or frame controls first, then tune frame interpolation and motion-vector quality.',
+      'Mark cuts and shot changes before asking the retime plugin to interpolate across them.',
+      'Use Twixtor Pro tracking points, spline guidance, mattes, or object separation when crossing limbs, weapons, UI overlays, or camera motion confuse automatic motion estimation.',
+      'Use motion blur add/remove and motion-vector import/export controls only after the core retime curve is correct.'
     ],
     onlineResearch: {
       status: 'optional',
@@ -955,7 +966,7 @@ AECreateContext.visualWorkflowLibrary = function () {
       'the user explicitly asks for separate layer control',
       'the particle plugin cannot use the keyed layer as a layer emitter or layer map'
     ]),
-    parameterGroups: ['keyed-matte-source', 'sample-color', 'key-tolerance', 'matte-softness', 'particle-emitter', 'layer-emitter-3d-switches', 'particle-life-size', 'turbulence', 'glow-composite'],
+    parameterGroups: ['keyed-matte-source', 'sample-color', 'key-tolerance', 'matte-softness', 'particle-emitter', 'layer-emitter-3d-switches', 'layer-maps-color-alpha-luma', 'particle-life-size', 'turbulence', 'glow-composite'],
     requiredPlanningSteps: [{
       id: 'sample-target-color',
       description: 'Identify the visible source color or edge region that should drive the effect, such as a pink blade edge.'
@@ -985,6 +996,7 @@ AECreateContext.visualWorkflowLibrary = function () {
       'The keyed duplicate is a source/matte layer, not another similar particle layer; it may be hidden/guide/non-rendering when the downstream plugin can still read it.',
       'Prefer one keyed source layer plus one particle carrier layer. Add glow on the particle carrier or keyed source only when needed for the requested look.',
       'For Trapcode Particular Layer Emitter or similar layer-source particle workflows, keep the keyed source 2D by default and only plan threeDLayer plus Collapse Transformations when the source itself must relay 3D transform data.',
+      'If the particle source should follow source color, lightness, or alpha, use Layer Maps instead of turning the keyed source into several duplicate particle layers.',
       'If a layer-emitter particle result spreads across the full comp, first verify the Layer/RGB source reference and constrain emitter size or layer sampling before adding more particle layers.',
       'Expose the sampled color, key tolerance/softness, particle rate, emitter path, turbulence, life, size, and glow strength as user-editable parameters when practical.'
     ],
@@ -1431,7 +1443,7 @@ AECreateContext.visualWorkflowLibrary = function () {
       'user explicitly asks for separate layer control',
       'the grading stack should not alter source timing'
     ]),
-    parameterGroups: ['base-exposure', 'temperature', 'contrast', 'saturation', 'glow-bloom', 'edge-light', 'tone-curve'],
+    parameterGroups: ['preset-or-look', 'workflow-chain', 'mix-strength', 'lut-or-aces-transform', 'base-exposure', 'temperature', 'contrast', 'saturation', 'glow-bloom', 'edge-light', 'tone-curve', 'film-grain', 'halation-diffusion', 'chromatic-aberration'],
     requiredPlanningSteps: [{
       id: 'normalize-base-shot',
       actionTypes: ['setProperty', 'setLayerProperties'],
@@ -1447,8 +1459,17 @@ AECreateContext.visualWorkflowLibrary = function () {
     }],
     planningRules: [
       'Treat Looks as a post-grade stack, not the final purpose of the shot by itself.',
+      'Keep the Look mix strength editable so the grade can be blended rather than baked in.',
+      'Use the preset browser and tool chain together: presets define the base look, tools refine it.',
+      'If LUT or ACES transforms are used, keep them inside the reversible stack rather than hard-baking the source footage.',
       'Keep exposure, temperature, and glow controls editable.',
       'Use one trimmed grade layer unless the user explicitly wants split controls.'
+    ],
+    notes: [
+      'Magic Bullet Looks should be treated as a reversible look stack with an adjustable mix value, not as a one-way source replacement.',
+      'Use the Looks Drawer to pin the starting look and then refine it with the tool chain instead of treating the preset as a finished grade.',
+      'Presets provide the starting look; individual tools such as grain, halation, diffusion, chromatic aberration, and tone shaping finish the result.',
+      'Use LUT or ACES style transforms only when color-management behavior is part of the requested look.'
     ],
     recommendedActionTypes: ['addAdjustmentLayer', 'addEffect', 'setProperty', 'setKeyframes', 'setLayerProperties'],
     onlineResearch: optionalResearch()

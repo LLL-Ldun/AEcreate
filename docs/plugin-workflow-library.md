@@ -72,6 +72,20 @@ The first visual-goal set covers keyed edge particles, short impact stacks, Twix
 
 Second-pass tutorial coverage adds beat-synced entry flashes, lens-compensation white flashes, Looks/post-grade atmosphere stacks, and 3D orbit/wrap transitions.
 
+### Official-Doc Supplement / 官方说明补充
+
+English:
+
+- Tutorial-covered workflow families now carry official-doc detail where the vendor docs clarify controls, output modes, or edge-case behavior.
+- The current round fills in Particular system routing and Layer Maps, Twixtor retime controls and guidance tools, BCC Two Way Key key/keep separation, and Magic Bullet Looks preset/tool-chain finishing controls.
+- The library still keeps minimum-layers-first as the default rule; official docs only refine how the existing workflow should be executed.
+
+中文：
+
+- 已有视频教程覆盖的 workflow 家族现在会补进官方说明里讲得更细的控制项、输出模式和边界行为。
+- 这次补的是 Particular 的 System 路由和 Layer Maps、Twixtor 的重定时控制与引导工具、BCC Two Way Key 的 Key/Keep 分离，以及 Magic Bullet Looks 的 preset/tool chain 收尾控制。
+- 库里仍然默认“最少图层优先”；官方说明只负责把已有 workflow 的执行细节补完整，不重写主流程。
+
 
 ## ???????
 

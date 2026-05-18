@@ -397,6 +397,66 @@ test('pluginWorkflow includes tutorial-derived plugin usage families', () => {
   }
 });
 
+test('pluginWorkflow enriches Trapcode Particular with official documentation workflow details', () => {
+  const helpers = loadContextHelpers();
+
+  const workflow = helpers.pluginWorkflow({
+    name: 'Trapcode Particular',
+    matchName: 'tc Particular',
+    category: 'RG Particles and 3D'
+  });
+
+  assert.ok(workflow.parameterGroups.includes('multi-system-routing'));
+  assert.ok(workflow.parameterGroups.includes('layer-maps-color-alpha-luma'));
+  assert.ok(workflow.parameterGroups.includes('environment-air-turbulence'));
+  assert.ok(workflow.parameterGroups.includes('physics-simulation'));
+  assert.ok(workflow.parameterGroups.includes('rendering-motion-blur'));
+  assert.ok(workflow.notes.some((note) => /System/i.test(note)));
+  assert.ok(workflow.notes.some((note) => /Layer Maps/i.test(note)));
+  assert.ok(workflow.notes.some((note) => /Air Turbulence/i.test(note)));
+});
+
+test('pluginWorkflow enriches BCC Two Way Key with keep-color and matte-view workflow details', () => {
+  const helpers = loadContextHelpers();
+
+  const workflow = helpers.pluginWorkflow({
+    name: 'BCC Two Way Key',
+    matchName: 'BCC Two Way Key',
+    category: 'Boris FX Key'
+  });
+
+  assert.equal(workflow.layerStrategy, 'sourceLayer');
+  assert.ok(workflow.parameterGroups.includes('key-color'));
+  assert.ok(workflow.parameterGroups.includes('keep-color'));
+  assert.ok(workflow.parameterGroups.includes('matte-view-output'));
+  assert.ok(workflow.parameterGroups.includes('roi-and-mocha-mask'));
+  assert.ok(workflow.parameterGroups.includes('matte-cleanup'));
+  assert.ok(workflow.notes.some((note) => /Keep Color/i.test(note)));
+  assert.ok(workflow.notes.some((note) => /Output/i.test(note)));
+});
+
+test('pluginWorkflow enriches Twixtor Pro with official speed-ramp workflow details', () => {
+  const helpers = loadContextHelpers();
+
+  const workflow = helpers.pluginWorkflow({
+    name: 'Twixtor Pro',
+    matchName: 'Twixtor Pro',
+    category: 'RE:Vision Effects'
+  });
+
+  assert.equal(workflow.layerStrategy, 'sourceLayer');
+  assert.ok(workflow.parameterGroups.includes('frame-rate-conversion'));
+  assert.ok(workflow.parameterGroups.includes('motion-blur-control'));
+  assert.ok(workflow.parameterGroups.includes('cut-marking'));
+  assert.ok(workflow.parameterGroups.includes('object-separation'));
+  assert.ok(workflow.parameterGroups.includes('track-point-guidance'));
+  assert.ok(workflow.parameterGroups.includes('spline-guidance'));
+  assert.ok(workflow.parameterGroups.includes('motion-vector-import-export'));
+  assert.ok(workflow.notes.some((note) => /frame/i.test(note)));
+  assert.ok(workflow.notes.some((note) => /cut/i.test(note)));
+  assert.ok(workflow.notes.some((note) => /tracking/i.test(note)));
+});
+
 test('visualWorkflowLibrary exposes tutorial-derived visual workflow families', () => {
   const helpers = loadContextHelpers();
   const workflows = helpers.visualWorkflowLibrary();
@@ -429,6 +489,23 @@ test('visualWorkflowLibrary exposes tutorial-derived visual workflow families', 
     assert.ok(Array.isArray(workflow.planningRules));
     assert.ok(workflow.planningRules.length > 0);
   }
+});
+
+test('visualWorkflowLibrary enriches Looks post-grade atmosphere with official finishing controls', () => {
+  const helpers = loadContextHelpers();
+  const workflow = helpers.visualWorkflowLibrary().find((entry) => entry.id === 'looks-postgrade-atmosphere');
+
+  assert.ok(workflow);
+  assert.ok(workflow.parameterGroups.includes('preset-or-look'));
+  assert.ok(workflow.parameterGroups.includes('workflow-chain'));
+  assert.ok(workflow.parameterGroups.includes('mix-strength'));
+  assert.ok(workflow.parameterGroups.includes('lut-or-aces-transform'));
+  assert.ok(workflow.parameterGroups.includes('film-grain'));
+  assert.ok(workflow.parameterGroups.includes('halation-diffusion'));
+  assert.ok(workflow.parameterGroups.includes('chromatic-aberration'));
+  assert.ok(workflow.notes.some((note) => /Looks Drawer/i.test(note)));
+  assert.ok(workflow.notes.some((note) => /ACES/i.test(note)));
+  assert.ok(workflow.notes.some((note) => /pin/i.test(note)));
 });
 
 test('workflow entries expose single-record source policy for official and tutorial precedence', () => {

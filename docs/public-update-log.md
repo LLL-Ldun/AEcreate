@@ -720,3 +720,23 @@ English:
 - Workflows classify effects as `sourceLayer`, `adjustmentLayer`, `solidCarrier`, or `unknown`, with recommended structured actions.
 - Added `addAdjustmentLayer` so Twitch, Deep Glow, RSMB, impact, glow, blur, glitch, and color workflows can use trimmed adjustment layers.
 - Unknown plugins keep their scanned parameter trees and include `onlineResearch.queries` so Codex can later research official docs or tutorials and promote new rules into the library.
+
+### 2026-05-18 - Official Doc Workflow Gap Fill / workflow 官方说明补全
+
+English:
+
+- Added official-documentation supplementation for `particle-solid-carrier`, `matte-key-source-preprocess`, `source-retime-layer`, and `looks-postgrade-atmosphere`.
+- Trapcode Particular workflow notes now cover System routing, Layer Maps color/alpha/luma driving, Air Turbulence, Physics Simulation, motion blur, and 3D model emitter source behavior.
+- BCC Two Way Key workflow notes now separate Key Color/Similarity removal from Keep Color/Similarity restoration and mention matte-view outputs plus ROI/Mocha-style masking.
+- Twixtor workflow notes now cover frame-rate conversion, motion blur control, cut marking, track-point guidance, spline guidance, matte guidance, and motion-vector import/export.
+- Magic Bullet Looks workflow notes now cover preset-to-tool chain refinement, mix strength, LUT/ACES transforms, film grain, halation, diffusion, and chromatic aberration.
+- Validation: `npm test` passed after the workflow library and test updates.
+
+中文：
+
+- 为 `particle-solid-carrier`、`matte-key-source-preprocess`、`source-retime-layer` 和 `looks-postgrade-atmosphere` 补上了官方说明细节。
+- Trapcode Particular 现在补进了 System 路由、Layer Maps 的 color/alpha/luma 驱动、Air Turbulence、Physics Simulation、motion blur 和 3D model emitter 源行为。
+- BCC Two Way Key 现在把 Key Color/Similarity 的去色范围和 Keep Color/Similarity 的保色范围分开，并补上 matte view 输出和 ROI / Mocha 风格遮罩。
+- Twixtor 现在补上了帧率转换、运动模糊控制、cut 标记、track point、spline、matte 引导和 motion vector 导入导出。
+- Magic Bullet Looks 现在补上了 preset 到 tool chain 的分层细化、mix strength、LUT/ACES、grain、halation、diffusion 和 chromatic aberration。
+- 验证：更新 workflow 库与测试后，`npm test` 通过。
